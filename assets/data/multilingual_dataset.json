@@ -1,0 +1,644 @@
+{
+    "Daily routine": [
+        {
+            "Category": "Daily routine",
+            "English": "What time is it?",
+            "Amharic": "ስንት ሰዓት ነው?",
+            "Oromo": "Sa'aatiin meeqa?",
+            "Tigrinya": "ሰዓት ክንደይ እዩ?"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "Give me this!",
+            "Amharic": "ይህን ስጠኝ!",
+            "Oromo": "Kana naaf kenni!",
+            "Tigrinya": "እዚ ሃበኒ!"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "Are you sure?",
+            "Amharic": "እርግጠኛ ነህ?",
+            "Oromo": "Mirkaneeffatteettaa?",
+            "Tigrinya": "ርግጸኛ ዲኻ?"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "It's freezing (weather)",
+            "Amharic": "በረዶ ነው (የአየር ሁኔታ)",
+            "Oromo": "Qorqorroo (haala qilleensaa) .",
+            "Tigrinya": "በረድ እዩ (ኩነታት ኣየር)"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "It's cold (weather)",
+            "Amharic": "ቀዝቃዛ ነው (የአየር ሁኔታ)",
+            "Oromo": "Qorqorroo (haala qilleensaa) .",
+            "Tigrinya": "ቁሪ እዩ (ኩነታት ኣየር)"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "Do you like it?",
+            "Amharic": "ወደዱ?",
+            "Oromo": "Ni jaallattaa?",
+            "Tigrinya": "ትፈትዎ ዲኻ?"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "I really like it!",
+            "Amharic": "በጣም ወድጄዋለሁ!",
+            "Oromo": "Baay'een jaalladha!",
+            "Tigrinya": "ብጣዕሚ እየ ዝፈትዎ!"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "I'm hungry",
+            "Amharic": "አርቦኛል አኔ",
+            "Oromo": "Beela'eera",
+            "Tigrinya": "ጠሚየ ኣለኹ"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "I'm thirsty",
+            "Amharic": "ጠምቶኛል",
+            "Oromo": "Ani dheebodheera",
+            "Tigrinya": "ጽምኢ ኣለኒ።"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "He is funny",
+            "Amharic": "እሱ አስቂኝ ነው።",
+            "Oromo": "Inni nama kofalchiisa",
+            "Tigrinya": "መስሓቕ እዩ።"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "In The Morning",
+            "Amharic": "በጠዋት",
+            "Oromo": "Ganama",
+            "Tigrinya": "ኣብ ንግሆ"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "In the evening",
+            "Amharic": "ምሽት ላይ",
+            "Oromo": "Galgala galgala",
+            "Tigrinya": "ምሸት ምሸት"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "At Night",
+            "Amharic": "በማታ",
+            "Oromo": "Halkan",
+            "Tigrinya": "ብለይቲ"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "Hurry up!",
+            "Amharic": "ፍጥን!",
+            "Oromo": "Daddafi!",
+            "Tigrinya": "ቀልጥፍ!"
+        },
+        {
+            "Category": "Daily routine",
+            "English": "That's nice!",
+            "Amharic": "ጥሩ ነው!",
+            "Oromo": "Sun namatti tola!",
+            "Tigrinya": "ጽቡቕ'ዩ!"
+        }
+    ],
+    "Emergency": [
+        {
+            "Category": "Emergency",
+            "English": "Help!",
+            "Amharic": "እርዳ!",
+            "Oromo": "Gargaaruu!",
+            "Tigrinya": "ሓገዝ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Stop!",
+            "Amharic": "ተወ!",
+            "Oromo": "Dhaabuu!",
+            "Tigrinya": "ጠጠው በል!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Fire!",
+            "Amharic": "እሳት!",
+            "Oromo": "Abidda!",
+            "Tigrinya": "ሓዊ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Thief!",
+            "Amharic": "ሌባ!",
+            "Oromo": "Hattuu!",
+            "Tigrinya": "ሰራቒ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Run!",
+            "Amharic": "ሩጡ!",
+            "Oromo": "Fiiguu!",
+            "Tigrinya": "ጉየ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Call the police!",
+            "Amharic": "ፖሊስ ጥራ!",
+            "Oromo": "Poolisiitti bilbilaa!",
+            "Tigrinya": "ናብ ፖሊስ ደውሉ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Call a doctor!",
+            "Amharic": "ዶክተር ይደውሉ!",
+            "Oromo": "Doktora bilbilaa!",
+            "Tigrinya": "ናብ ሓኪም ደውሉ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Call the ambulance!",
+            "Amharic": "አምቡላንስ ይደውሉ!",
+            "Oromo": "Ambulaansii bilbilaa!",
+            "Tigrinya": "ናብ ኣምቡላንስ ደውሉ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Are you okay?",
+            "Amharic": "ሰላም ነው?",
+            "Oromo": "Nagaa jirtuu?",
+            "Tigrinya": "ደሓን ዲኻ?"
+        },
+        {
+            "Category": "Emergency",
+            "English": "I feel sick",
+            "Amharic": "ህመም ይሰማኛል",
+            "Oromo": "Dhukkubni natti dhagahama",
+            "Tigrinya": "ሕማም ይስምዓኒ።"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Where is the closest pharmacy?",
+            "Amharic": "በጣም ቅርብ የሆነው ፋርማሲ የት ነው?",
+            "Oromo": "Manni qorichaa dhiyoo jiru eessa jira?",
+            "Tigrinya": "እቲ ዝቐረበ ፋርማሲ ኣበይ ኣሎ?"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Calm down!",
+            "Amharic": "አቀዝቅዝ!",
+            "Oromo": "Tasgabbaa'aa!",
+            "Tigrinya": "ህድእ በሉ!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "You will be okay!",
+            "Amharic": "ደህና ትሆናለህ!",
+            "Oromo": "Tole ni taata!",
+            "Tigrinya": "ጽቡቕ ክትኮኑ ኢኹም!"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Can you help me?",
+            "Amharic": "ልትረዳኝ ትችላለህ?",
+            "Oromo": "Na gargaaruu dandeessaa?",
+            "Tigrinya": "ክትሕግዙኒ ትኽእሉ ዶ?"
+        },
+        {
+            "Category": "Emergency",
+            "English": "Can I help you?",
+            "Amharic": "ልረዳህ የምችለው ነገር አለ?",
+            "Oromo": "Si gargaaruu danda'aa?",
+            "Tigrinya": "ክሕግዘካ ይኽእል ድየ?"
+        }
+    ],
+    "Greetings and farewell": [
+        {
+            "Category": "Greetings and farewell",
+            "English": "Hello my friend",
+            "Amharic": "ሰላም ጓደኛዬ",
+            "Oromo": "Akkam jirtu hiriyaa koo",
+            "Tigrinya": "ሰላም ዓርከይ"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "How are you?",
+            "Amharic": "እንደምን ነህ?",
+            "Oromo": "Akkam jirta?",
+            "Tigrinya": "ከመይ አለካ?"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Good morning",
+            "Amharic": "እንዴት አደርክ",
+            "Oromo": "Akkam bulte",
+            "Tigrinya": "ከመይ ሓዲርኩም"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Good afternoon",
+            "Amharic": "እንደምን ዋልክ",
+            "Oromo": "Akkam ooltan",
+            "Tigrinya": "ከመይ ውዒሎም"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Good night",
+            "Amharic": "መልካም ሌሊት",
+            "Oromo": "Halkan gaarii",
+            "Tigrinya": "ልዋም ለይቲ"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Hello",
+            "Amharic": "ሰላም",
+            "Oromo": "Akkam",
+            "Tigrinya": "ሰላም"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Long time no see",
+            "Amharic": "ለረጅም ግዜ አለየሁህም",
+            "Oromo": "Osoo wal hin argin bubbulle",
+            "Tigrinya": "ካብ ዘይንራኸብ ብዙሕ ገይርና"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Thank you",
+            "Amharic": "አመሰግናለሁ",
+            "Oromo": "Galatoomaa",
+            "Tigrinya": "የቕንየለይ"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Welcome",
+            "Amharic": "እንኳን ደህና መጣህ",
+            "Oromo": "Baga nagaan dhufte",
+            "Tigrinya": "እንኳዕ ደሓን መፁ"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Make yourself at home!",
+            "Amharic": "እራስህን እቤት አድርግ!",
+            "Oromo": "Mana keessa of tolfadhu!",
+            "Tigrinya": "ንነብስኻ ኣብ ገዛኻ ግበር!"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Have a nice day!",
+            "Amharic": "መልካም ቀን ይሁንልህ!",
+            "Oromo": "Guyyaa gaarii siif haa ta'u!",
+            "Tigrinya": "ብሩኽ መዓልቲ!"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "See you later!",
+            "Amharic": "ደግሜ አይሀለሁ!",
+            "Oromo": "Booda wal agarra!",
+            "Tigrinya": "ጸኒሑ የራኽበና!"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "Have a good trip!",
+            "Amharic": "መልካም ጉዞ!",
+            "Oromo": "Imala gaarii isiniif haa ta'u!",
+            "Tigrinya": "ሰናይ ጉዕዞ ይግበረልኩም!"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "I have to go",
+            "Amharic": "መሄአድ አለብኝ",
+            "Oromo": "Deemuun qaba",
+            "Tigrinya": "ክኸይድ ኣለኒ።"
+        },
+        {
+            "Category": "Greetings and farewell",
+            "English": "I will be right back!",
+            "Amharic": "ወዲያው እመለሳለሁ!",
+            "Oromo": "Achumaan deebi'a!",
+            "Tigrinya": "ብቕጽበት ክምለስ እየ!"
+        }
+    ],
+    "Hotel; Restaurant; Shopping": [
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "I have a reservation (for a room)",
+            "Amharic": "ቦታ ማስያዝ አለኝ (ለክፍል)",
+            "Oromo": "Reservation qaba (kutaa tokkoof) .",
+            "Tigrinya": "ዕቑባ ኣለኒ (ንሓደ ክፍሊ)"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "Do you have rooms available?",
+            "Amharic": "የሚገኙ ክፍሎች አሎት?",
+            "Oromo": "Kutaawwan jiran qabduu?",
+            "Tigrinya": "ክፍልታት ኣለኩም ድዩ?"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "With shower / With bathroom",
+            "Amharic": "ከመታጠቢያ ቤት ጋር / ከመታጠቢያ ቤት ጋር",
+            "Oromo": "Shaawariin / Mana fincaanii wajjin",
+            "Tigrinya": "ምስ ሻወር / ምስ ሽቓቕ"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "I would like a non-smoking room",
+            "Amharic": "የማያጨስ ክፍል እፈልጋለሁ",
+            "Oromo": "Kutaa tamboo hin xuuxne nan barbaada",
+            "Tigrinya": "ሽጋራ ዘይትክኽ ክፍሊ ምደለኹ"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "What is the charge per night?",
+            "Amharic": "ለአንድ ሌሊት ክፍያ ምን ያህል ነው?",
+            "Oromo": "Halkan tokkoof kaffaltiin maali?",
+            "Tigrinya": "ንሓንቲ ለይቲ ዝኽፈል ክፍሊት ክንደይ እዩ?"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "I'm here on business /on vacation",
+            "Amharic": "እኔ እዚህ በንግድ/በእረፍት ላይ ነኝ",
+            "Oromo": "Ani hojiif /boqonnaa irratti as jira",
+            "Tigrinya": "ኣብዚ ዘለኹ ብስራሕ /ብዕረፍቲ እየ"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "Do you accept credit cards?",
+            "Amharic": "ክሬዲት ካርዶችን ትቀበላለህ?",
+            "Oromo": "Kaardii liqii ni fudhattaa?",
+            "Tigrinya": "ናይ ክረዲት ካርድ ትቕበል ዲኻ?"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "How much will it cost?",
+            "Amharic": "ምን ያህል ያስከፍላል?",
+            "Oromo": "Baasiin isaa meeqa ta'a?",
+            "Tigrinya": "ክንደይ ክኸፍል እዩ?"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "What's the name of this dish?",
+            "Amharic": "የዚህ ምግብ ስም ማን ይባላል?",
+            "Oromo": "Maqaan nyaata kanaa maali?",
+            "Tigrinya": "እዚ ድስቲ እንታይ ይበሃል?"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "It is very delicious!",
+            "Amharic": "በጣም ጣፋጭ ነው!",
+            "Oromo": "Baay'ee mi'aawaa dha!",
+            "Tigrinya": "ብጣዕሚ ጥዑም እዩ!"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "How much is this?",
+            "Amharic": "ይሄ ስንት ነው?",
+            "Oromo": "Kun meeqa?",
+            "Tigrinya": "እዚ ክንደይ እዩ?"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "I'm just looking",
+            "Amharic": "እየፈለግኩ ነው።",
+            "Oromo": "Ani ilaalaa jira",
+            "Tigrinya": "ኣነ ጥራይ እየ ዝጥምት ዘለኹ"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "I don't have change",
+            "Amharic": "ለውጥ የለኝም",
+            "Oromo": "Jijjiirama hin qabu",
+            "Tigrinya": "ለውጢ የብለይን።"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "This is too expensive",
+            "Amharic": "ይህ በጣም ውድ ነው።",
+            "Oromo": "Kun garmalee qaala'aa dha",
+            "Tigrinya": "እዚ ኣዝዩ ክቡር እዩ።"
+        },
+        {
+            "Category": "Hotel; Restaurant; Shopping",
+            "English": "Cheap",
+            "Amharic": "ርካሽ",
+            "Oromo": "Rakasa",
+            "Tigrinya": "ሕሳር"
+        }
+    ],
+    "Romance and love": [
+        {
+            "Category": "Romance and love",
+            "English": "Are you free tomorrow evening?",
+            "Amharic": "ነገ ምሽት ነፃ ነህ?",
+            "Oromo": "Boru galgala bilisoomtee?",
+            "Tigrinya": "ጽባሕ ምሸት ናጻ ዲኻ?"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "I would like to invite you to dinner",
+            "Amharic": "እራት ልጋብዝህ እፈልጋለሁ",
+            "Oromo": "Irbaata nyaachuuf isin afeeruun barbaada",
+            "Tigrinya": "ናብ ድራር ክዕድመኩም ይፈቱ"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "You look beautiful!",
+            "Amharic": "ታምራለህ!",
+            "Oromo": "Bareedduu fakkaatta!",
+            "Tigrinya": "ጽብቕቲ ትመስል!"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "You have a beautiful name",
+            "Amharic": "ቆንጆ ስም አለህ",
+            "Oromo": "Maqaa bareedaa qabda",
+            "Tigrinya": "ጽቡቕ ስም ኣለካ"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "Can you tell me more about you?",
+            "Amharic": "ስለእርስዎ የበለጠ ሊነግሩኝ ይችላሉ?",
+            "Oromo": "Waa'ee kee kana caalaa natti himuu dandeessaa?",
+            "Tigrinya": "ብዛዕባኻ ዝያዳ ክትነግረኒ ትኽእል ዲኻ?"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "Are you married?",
+            "Amharic": "አግብተሃል?",
+            "Oromo": "Fuuteettaa?",
+            "Tigrinya": "ዝተመርዓኻ ዲኻ?"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "I'm single",
+            "Amharic": "ላጤ ነኝ",
+            "Oromo": "Ani single dha",
+            "Tigrinya": "ኣነ ንጽል እየ"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "I'm married",
+            "Amharic": "ባለትዳር ነኝ",
+            "Oromo": "Ani fuudhee jira",
+            "Tigrinya": "ኣነ በዓል ሓዳር እየ"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "Can I have your phone number?",
+            "Amharic": "ስልክ ቁጥርህን ማግኘት እችላለሁ?",
+            "Oromo": "Lakkoofsa bilbilaa keessan qabaachuu nan danda'aa?",
+            "Tigrinya": "ቁጽሪ ተሌፎንካ ክህልወኒ ይኽእል ድዩ?"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "Do you have any pictures of you?",
+            "Amharic": "የእርስዎ ምስሎች አሉዎት?",
+            "Oromo": "Suuraa keessan qabduu?",
+            "Tigrinya": "ስእሊ ኣለኩም ዶ?"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "I like you",
+            "Amharic": "እወድሻለሁ",
+            "Oromo": "natti tolta",
+            "Tigrinya": "ተመቺካኒ"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "I love you",
+            "Amharic": "እወድሃለሁ",
+            "Oromo": "sin jaalladha",
+            "Tigrinya": "የፍቅረኪ እየ"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "You're very special!",
+            "Amharic": "በጣም ልዩ ነሽ!",
+            "Oromo": "Baayyee adda taate!",
+            "Tigrinya": "ብጣዕሚ ፍልይቲ ኢኻ!"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "Would you marry me?",
+            "Amharic": "ታገባኛለህ?",
+            "Oromo": "Na heerumtaa?",
+            "Tigrinya": "ምተመርዓኻኒ ዶ?"
+        },
+        {
+            "Category": "Romance and love",
+            "English": "My heart speaks the language of love",
+            "Amharic": "ልቤ የፍቅር ቋንቋ ይናገራል",
+            "Oromo": "Garaan koo afaan jaalalaa dubbata",
+            "Tigrinya": "ልበይ ቋንቋ ፍቕሪ እዩ ዝዛረብ"
+        }
+    ],
+    "Wishes and Introduction": [
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Happy Easter",
+            "Amharic": "መልካም ፋሲካ",
+            "Oromo": "Baga Ayyaana Faasikaa geessan",
+            "Tigrinya": "ርሑስ በዓል ፋሲካ"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Happy new year!",
+            "Amharic": "መልካም አዲስ ዓመት!",
+            "Oromo": "Baga bara haaraa geessan!",
+            "Tigrinya": "ርሑስ ሓዱሽ ዓመት!"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Happy Holidays!",
+            "Amharic": "መልካም በዓል!",
+            "Oromo": "Baga Ayyaana Geessan!",
+            "Tigrinya": "ርሑስ በዓል!"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Good luck!",
+            "Amharic": "መልካም እድል!",
+            "Oromo": "Carraa gaarii!",
+            "Tigrinya": "ፅቡቕ ዕድል!"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Happy birthday!",
+            "Amharic": "መልካም ልደት!",
+            "Oromo": "Baga guyyaa dhaloota kee geesse!",
+            "Tigrinya": "እንኳዕ ተወለድካ!"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Congratulations!",
+            "Amharic": "እንኳን ደስ አላችሁ!",
+            "Oromo": "Baga gammaddan!",
+            "Tigrinya": "እንቋዕ ሓጎሰካ!"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Best wishes!",
+            "Amharic": "መልካም ምኞት!",
+            "Oromo": "Hawwii gaarii!",
+            "Tigrinya": "ሰናይ ትምኒት!"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "What's your name?",
+            "Amharic": "ስምህ ማን ነው?",
+            "Oromo": "Maqaan kee eenyu?",
+            "Tigrinya": "ሽምካ መን እዩ?"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "My name is (Jane Doe)",
+            "Amharic": "ስሜ (ጄን ዶ እባላለሁ)",
+            "Oromo": "Maqaan koo (Jane Doe) jedhama.",
+            "Tigrinya": "ኣነ (ጄን ዶይ) ይበሃል"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Nice to meet you!",
+            "Amharic": "ስለተዋወቅን ደስ ብሎኛል!",
+            "Oromo": "Walbaruu keenyatti gammadeera!",
+            "Tigrinya": "ስለዝረኸብኩኻ ሕጉስ እየ!"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Where are you from?",
+            "Amharic": "አገርህ የት ነው?",
+            "Oromo": "Eessaa dhufte?",
+            "Tigrinya": "ካበይ ኢኻ መፂኻ?"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "I'm from (U.S)",
+            "Amharic": "እኔ ከ (US) ነኝ",
+            "Oromo": "Ani (U.S) irraan dhufe.",
+            "Tigrinya": "ኣነ ካብ (U.S) እየ"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "Do you like it here?",
+            "Amharic": "እዚህ ይወዳሉ?",
+            "Oromo": "Asitti ni jaallattaa?",
+            "Tigrinya": "ኣብዚ ትፈትዎ ዲኻ?"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "This is my husband",
+            "Amharic": "ይህ ባለቤቴ ነው።",
+            "Oromo": "Kun abbaa warraa kooti",
+            "Tigrinya": "እዚ በዓል ቤተይ እዩ።"
+        },
+        {
+            "Category": "Wishes and Introduction",
+            "English": "This is my wife",
+            "Amharic": "ይህች ሚስቴ ናት።",
+            "Oromo": "Kun haadha manaa kooti",
+            "Tigrinya": "እዚኣ እያ ሰበይተይ"
+        }
+    ]
+}
