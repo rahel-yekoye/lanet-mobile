@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lanet_mobile/screens/alphabet/alphabet_overview_screen.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/lesson_provider.dart';
 import 'category_screen.dart';
 
@@ -7,25 +9,118 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lp = Provider.of<LessonProvider>(context);
+
     if (lp.loading) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
+
     return Scaffold(
-      appBar: AppBar(title: Text('Lanet — Learn Languages')),
-      body: ListView.builder(
-        itemCount: lp.categories.length,
-        itemBuilder: (context, i) {
-          final cat = lp.categories[i];
-          final count = lp.phrasesFor(cat).length;
-          return ListTile(
-            title: Text(cat),
-            subtitle: Text('$count phrases'),
-            trailing: Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryScreen(category: cat)));
-            },
-          );
-        },
+      appBar: AppBar(
+        title: const Text('Lanet — Learn Languages'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          /// 🔤 ALPHABET ENTRY (FIXED AT TOP)
+          _AlphabetEntryCard(context),
+
+          const SizedBox(height: 16),
+
+          /// 📚 PHRASE CATEGORIES
+          ...lp.categories.map((cat) {
+            final count = lp.phrasesFor(cat).length;
+            return ListTile(
+              title: Text(cat),
+              subtitle: Text('$count phrases'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CategoryScreen(category: cat),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+}
+
+/// 🔤 Alphabet Card Widget
+class _AlphabetEntryCard extends StatelessWidget {
+  const _AlphabetEntryCard(this.context);
+
+  final BuildContext context;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AlphabetOverviewScreen(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          children: [
+            /// Icon
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.translate,
+                size: 28,
+                color: Colors.deepOrange,
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            /// Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Learn the Alphabet',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Sounds • Letters • Pronunciation',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Icon(Icons.chevron_right),
+          ],
+        ),
       ),
     );
   }
