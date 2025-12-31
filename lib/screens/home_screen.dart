@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lanet_mobile/screens/alphabet/alphabet_overview_screen.dart';
+import 'package:lanet_mobile/widgets/pattern_background.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/lesson_provider.dart';
@@ -12,19 +13,24 @@ class HomeScreen extends StatelessWidget {
 
     if (lp.loading) {
       return const Scaffold(
+        backgroundColor: Colors.transparent,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lanet — Learn Languages'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          /// 🔤 ALPHABET ENTRY (FIXED AT TOP)
-          _AlphabetEntryCard(context),
+    return PatternBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Lanet — Learn Languages'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            /// 🔤 ALPHABET ENTRY (FIXED AT TOP)
+            _AlphabetEntryCard(context),
 
           const SizedBox(height: 16),
 
@@ -46,7 +52,7 @@ class HomeScreen extends StatelessWidget {
             );
           }).toList(),
         ],
-      ),
+      ),),
     );
   }
 }

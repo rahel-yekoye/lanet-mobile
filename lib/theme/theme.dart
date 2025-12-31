@@ -2,57 +2,76 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Colors
-  static const primaryPurple = Color(0xFF8E44AD);
-  static const lightPurple = Color(0xFFF3E5F5);
-  static const darkGrey = Color(0xFF333333);
-  static const mediumGrey = Color(0xFF666666);
-  static const lightGrey = Color(0xFFEEEEEE);
-  static const white = Colors.white;
+  // Paleta cálida etíope (beige, naranja, marrón)
+  static const Color beigeBackground = Color(0xFFF5E8D4);
+  static const Color creamCard = Color(0xFFFFF3E8);
+  static const Color orangeAccent = Color(0xFFF97316); // naranja vivo pero cálido
+  static const Color deepOrange = Color(0xFFDD6B20);
+  static const Color brownText = Color(0xFF5D4037);
+  static const Color darkBrown = Color(0xFF4E342E);
 
   // Text Styles
-  static const appBarTitleStyle = TextStyle(
-    color: primaryPurple,
+  static const TextStyle appBarTitleStyle = TextStyle(
+    color: darkBrown,
     fontSize: 24,
     fontWeight: FontWeight.bold,
-    letterSpacing: 1.2,
+    letterSpacing: 1.0,
+    shadows: [
+      Shadow(
+        color: Colors.white70,
+        offset: Offset(1, 1),
+        blurRadius: 3,
+      ),
+    ],
   );
 
-  static const characterStyle = TextStyle(
-    fontSize: 36,
+  static const TextStyle categoryTagStyle = TextStyle(
+    fontSize: 13,
     fontWeight: FontWeight.bold,
-    color: darkGrey,
+    color: Colors.white,
   );
 
-  static const transliterationStyle = TextStyle(
+  static const TextStyle characterStyle = TextStyle(
+    fontSize: 48,
+    fontWeight: FontWeight.bold,
+    color: darkBrown,
+    fontFamily: 'NotoEthiopic',
+  );
+
+  static const TextStyle transliterationStyle = TextStyle(
+    fontSize: 18,
+    color: brownText,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const TextStyle vowelStyle = TextStyle(
     fontSize: 16,
-    color: mediumGrey,
-    fontWeight: FontWeight.w500,
-  );
-
-  static const vowelStyle = TextStyle(
-    fontSize: 14,
-    color: mediumGrey,
+    color: deepOrange,
   );
 
   // Theme Data
   static ThemeData get lightTheme {
     return ThemeData(
-      primaryColor: primaryPurple,
-      scaffoldBackgroundColor: white,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: white,
+      scaffoldBackgroundColor: beigeBackground,
+      primaryColor: orangeAccent,
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: primaryPurple),
+        iconTheme: const IconThemeData(color: darkBrown, size: 28),
+        actionsIconTheme: const IconThemeData(color: darkBrown),
         titleTextStyle: appBarTitleStyle,
       ),
       cardTheme: CardTheme(
-        elevation: 2,
+        color: creamCard,
+        elevation: 6,
+        shadowColor: Colors.black26,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
         ),
-        color: lightPurple,
+      ),
+      textTheme: const TextTheme(
+        bodyMedium: TextStyle(color: darkBrown),
       ),
     );
   }

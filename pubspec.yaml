@@ -24,7 +24,6 @@ dependencies:
   # Audio
   just_audio: ^0.9.35
   audio_session: ^0.1.15
-
   # UI
   flutter_svg: ^2.0.7
   lottie: ^2.7.0
@@ -41,6 +40,7 @@ dependencies:
   go_router: ^13.0.0
 
   cupertino_icons: ^1.0.8
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +57,7 @@ flutter:
     - assets/data/multilingual_dataset.json
     - assets/data/level_0_fidel.csv
     - assets/animations/
-    - assets/images/
+    - assets/images/patterns/page_border.png
+    - assets/images/illustration/
     - assets/icons/
     - assets/audio/

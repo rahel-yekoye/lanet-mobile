@@ -40,7 +40,14 @@ class MyApp extends StatelessWidget {
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
         title: 'Lanet — Language Learner',
-        theme: ThemeData(primarySwatch: Colors.teal),
+        theme: ThemeData(
+          primarySwatch: Colors.teal,
+          scaffoldBackgroundColor: Colors.transparent,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
+        ),
         routerConfig: _router,
       ),
     );
