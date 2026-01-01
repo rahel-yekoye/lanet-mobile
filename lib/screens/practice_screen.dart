@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/phrase.dart';
 import '../services/srs_service.dart';
 import '../widgets/multiple_choice.dart';
+import '../widgets/speech_practice.dart';
+
+enum ExerciseType { multipleChoice, speech }
 
 class PracticeScreen extends StatefulWidget {
   final String category;
@@ -21,6 +24,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
   Phrase? current;
   List<String> choices = [];
   int correctIndex = 0;
+  ExerciseType? currentExerciseType;
+  String? currentTargetLang;
 
   @override
   void initState() {
@@ -34,24 +39,32 @@ class _PracticeScreenState extends State<PracticeScreen> {
     if (pool.isEmpty) {
       setState(() {
         current = null;
+        currentExerciseType = null;
       });
       return;
     }
     current = pool.removeLast();
-    // generate choices using target language (e.g. Oromo)
+    
+    // Randomly choose exercise type (50% multiple choice, 50% speech)
+    currentExerciseType = rnd.nextBool() ? ExerciseType.multipleChoice : ExerciseType.speech;
+    
     // For variety, randomly pick one target language per question
-    final targetLang = ['amharic', 'oromo', 'tigrinya'][rnd.nextInt(3)];
-    // build options
-    final allOptions = <String>{};
-    allOptions.add(_valueFor(current!, targetLang));
-    while (allOptions.length < 4) {
-      final randomPhrase = widget.phrases[rnd.nextInt(widget.phrases.length)];
-      allOptions.add(_valueFor(randomPhrase, targetLang));
+    currentTargetLang = ['amharic', 'oromo', 'tigrinya'][rnd.nextInt(3)];
+    
+    if (currentExerciseType == ExerciseType.multipleChoice) {
+      // build options for multiple choice
+      final allOptions = <String>{};
+      allOptions.add(_valueFor(current!, currentTargetLang!));
+      while (allOptions.length < 4) {
+        final randomPhrase = widget.phrases[rnd.nextInt(widget.phrases.length)];
+        allOptions.add(_valueFor(randomPhrase, currentTargetLang!));
+      }
+      final ops = allOptions.toList();
+      ops.shuffle();
+      choices = ops;
+      correctIndex = ops.indexWhere((o) => o == _valueFor(current!, currentTargetLang!));
     }
-    final ops = allOptions.toList();
-    ops.shuffle();
-    choices = ops;
-    correctIndex = ops.indexWhere((o) => o == _valueFor(current!, targetLang));
+    
     setState(() {});
   }
 
@@ -88,22 +101,48 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (current == null) {
+    if (current == null || currentExerciseType == null) {
       return Scaffold(
         appBar: AppBar(title: Text('Practice: ${widget.category}')),
         body: Center(child: Text('No questions (or finished).')),
       );
     }
+    
     return Scaffold(
-      appBar: AppBar(title: Text('Practice: ${widget.category}')),
+      appBar: AppBar(
+        title: Text('Practice: ${widget.category}'),
+        actions: [
+          // Exercise type indicator
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Chip(
+              label: Text(
+                currentExerciseType == ExerciseType.speech
+                    ? '🎤 Speech'
+                    : '📝 Multiple Choice',
+                style: const TextStyle(fontSize: 12),
+              ),
+              backgroundColor: currentExerciseType == ExerciseType.speech
+                  ? Colors.teal.shade100
+                  : Colors.blue.shade100,
+            ),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: MultipleChoice(
-          prompt: current!.english,
-          options: choices,
-          correctIndex: correctIndex,
-          onAnswer: _onAnswer,
-        ),
+        child: currentExerciseType == ExerciseType.speech
+            ? SpeechPractice(
+                prompt: current!.english,
+                targetText: _valueFor(current!, currentTargetLang!),
+                onResult: _onAnswer,
+              )
+            : MultipleChoice(
+                prompt: current!.english,
+                options: choices,
+                correctIndex: correctIndex,
+                onAnswer: _onAnswer,
+              ),
       ),
     );
   }

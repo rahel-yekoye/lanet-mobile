@@ -22,8 +22,12 @@ dependencies:
   hive_flutter: ^1.1.0
 
   # Audio
-  just_audio: ^0.9.35
-  audio_session: ^0.1.15
+  just_audio: ^0.9.46
+  audio_session: ^0.1.25
+  record: ^5.2.1
+  path_provider: ^2.1.1
+  # HTTP
+  http: ^1.1.2
   # UI
   flutter_svg: ^2.0.7
   lottie: ^2.7.0
@@ -41,6 +45,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   audioplayers: ^6.5.1
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
@@ -56,8 +61,5 @@ flutter:
   assets:
     - assets/data/multilingual_dataset.json
     - assets/data/level_0_fidel.csv
-    - assets/animations/
     - assets/images/patterns/page_border.png
     - assets/images/illustration/
-    - assets/icons/
-    - assets/audio/

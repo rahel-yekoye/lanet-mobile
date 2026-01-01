@@ -20,7 +20,7 @@ void main() {
 class MyApp extends StatelessWidget {
   final String assetPath = 'assets/data/multilingual_dataset.json';
 
-  MyApp({super.key});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +79,7 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (_, __) =>  HomeScreen(),
+      builder: (_, __) => HomeScreen(),
     ),
   ],
 );

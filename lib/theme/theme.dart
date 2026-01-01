@@ -62,7 +62,7 @@ class AppTheme {
         actionsIconTheme: const IconThemeData(color: darkBrown),
         titleTextStyle: appBarTitleStyle,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: creamCard,
         elevation: 6,
         shadowColor: Colors.black26,
