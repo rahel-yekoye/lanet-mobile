@@ -20,7 +20,7 @@ void main() {
 class MyApp extends StatelessWidget {
   final String assetPath = 'assets/data/multilingual_dataset.json';
 
-  MyApp({super.key});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
