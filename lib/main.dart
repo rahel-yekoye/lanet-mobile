@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'providers/lesson_provider.dart';
 import 'providers/fidel_provider.dart';
@@ -14,7 +15,7 @@ import 'screens/onboarding/reason_screen.dart';
 import 'screens/onboarding/daily_goal_screen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -40,14 +41,21 @@ class MyApp extends StatelessWidget {
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
         title: 'Lanet — Language Learner',
-        theme: ThemeData(
-          primarySwatch: Colors.teal,
-          scaffoldBackgroundColor: Colors.transparent,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-          ),
-        ),
+        theme: () {
+          final base = ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+            useMaterial3: true,
+            scaffoldBackgroundColor: Colors.transparent,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            ),
+          );
+          final ff = GoogleFonts.notoSansEthiopic().fontFamily;
+          return base.copyWith(
+            textTheme: GoogleFonts.notoSansEthiopicTextTheme(base.textTheme),
+          );
+        }(),
         routerConfig: _router,
       ),
     );
@@ -63,23 +71,23 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(
       path: '/onboarding/language',
-      builder: (_, __) => const LanguageScreen(),
+      builder: (context, state) => LanguageScreen(),
     ),
     GoRoute(
       path: '/onboarding/level',
-      builder: (_, __) => const LevelScreen(),
+      builder: (context, state) => LevelScreen(),
     ),
     GoRoute(
       path: '/onboarding/reason',
-      builder: (_, __) => const ReasonScreen(),
+      builder: (context, state) => ReasonScreen(),
     ),
     GoRoute(
       path: '/onboarding/daily_goal',
-      builder: (_, __) => const DailyGoalScreen(),
+      builder: (context, state) => DailyGoalScreen(),
     ),
     GoRoute(
       path: '/home',
-      builder: (_, __) => HomeScreen(),
+      builder: (context, state) => HomeScreen(),
     ),
   ],
 );
