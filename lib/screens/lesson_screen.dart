@@ -3,27 +3,27 @@ import '../models/phrase.dart';
 
 class LessonScreen extends StatelessWidget {
   final Phrase phrase;
-  const LessonScreen({required this.phrase});
+  const LessonScreen({super.key, required this.phrase});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Phrase'),
+        title: const Text('Phrase'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text(phrase.english, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
+            Text(phrase.english, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
             _rowLabel('Amharic', phrase.amharic),
             _rowLabel('Oromo', phrase.oromo),
             _rowLabel('Tigrinya', phrase.tigrinya),
-            Spacer(),
+            const Spacer(),
             ElevatedButton.icon(
-              icon: Icon(Icons.record_voice_over),
-              label: Text('Practice (quiz)'),
+              icon: const Icon(Icons.record_voice_over),
+              label: const Text('Practice (quiz)'),
               onPressed: () {
                 // open practice for this single phrase (or add to session)
               },
@@ -38,10 +38,10 @@ class LessonScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(lang, style: TextStyle(fontSize: 14, color: Colors.grey)),
-        SizedBox(height: 4),
-        Text(text, style: TextStyle(fontSize: 18)),
-        SizedBox(height: 12),
+        Text(lang, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+        const SizedBox(height: 4),
+        Text(text, style: const TextStyle(fontSize: 18)),
+        const SizedBox(height: 12),
       ],
     );
   }

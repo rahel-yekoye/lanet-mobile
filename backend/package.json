@@ -1,0 +1,24 @@
+{
+  "name": "lanet-backend",
+  "version": "1.0.0",
+  "description": "Backend for Lanet Language Learning App",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "node-pg-migrate"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4"
+  },
+  "devDependencies": {
+    "node-pg-migrate": "^6.2.2",
+    "nodemon": "^3.0.1"
+  }
+}

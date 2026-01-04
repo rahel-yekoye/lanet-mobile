@@ -8,7 +8,7 @@ class MultipleChoice extends StatelessWidget {
   final int correctIndex;
   final OnAnswer onAnswer;
 
-  const MultipleChoice({
+  const MultipleChoice({super.key, 
     required this.prompt,
     required this.options,
     required this.correctIndex,
@@ -20,8 +20,8 @@ class MultipleChoice extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(prompt, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        SizedBox(height: 16),
+        Text(prompt, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
         ...List.generate(options.length, (i) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 6.0),

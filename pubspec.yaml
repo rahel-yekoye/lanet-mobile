@@ -41,6 +41,12 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   audioplayers: ^6.5.1
+  
+  # Authentication and Database
+  http: ^1.1.0
+  crypto: ^3.0.3
+  jwt_decoder: ^2.0.1
+  postgres: ^3.0.3
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +64,6 @@ flutter:
     - assets/data/level_0_fidel.csv
     - assets/animations/
     - assets/images/patterns/page_border.png
-    - assets/images/illustration/
+    - assets/images/illustration/theboy.png
     - assets/icons/
     - assets/audio/

@@ -7,7 +7,7 @@ import '../widgets/multiple_choice.dart';
 class PracticeScreen extends StatefulWidget {
   final String category;
   final List<Phrase> phrases;
-  const PracticeScreen({required this.category, required this.phrases});
+  const PracticeScreen({super.key, required this.category, required this.phrases});
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -72,13 +72,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
     if (current == null) return;
     if (correct) {
       await srs.markCorrect(widget.category, current!.english);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Correct ✔️')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Correct ✔️')));
     } else {
       await srs.markWrong(widget.category, current!.english);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Wrong ✖️ — will be repeated')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Wrong ✖️ — will be repeated')));
     }
     // small delay then next
-    await Future.delayed(Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 600));
     if (pool.isEmpty) {
       // refresh pool (simple behavior)
       pool = List.from(widget.phrases)..shuffle();
@@ -91,7 +91,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
     if (current == null) {
       return Scaffold(
         appBar: AppBar(title: Text('Practice: ${widget.category}')),
-        body: Center(child: Text('No questions (or finished).')),
+        body: const Center(child: Text('No questions (or finished).')),
       );
     }
     return Scaffold(

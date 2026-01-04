@@ -54,12 +54,12 @@ class AppTheme {
     return ThemeData(
       scaffoldBackgroundColor: beigeBackground,
       primaryColor: orangeAccent,
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: darkBrown, size: 28),
-        actionsIconTheme: const IconThemeData(color: darkBrown),
+        iconTheme: IconThemeData(color: darkBrown, size: 28),
+        actionsIconTheme: IconThemeData(color: darkBrown),
         titleTextStyle: appBarTitleStyle,
       ),
       cardTheme: CardTheme(

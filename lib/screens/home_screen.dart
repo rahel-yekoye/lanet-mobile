@@ -7,6 +7,8 @@ import '../providers/lesson_provider.dart';
 import 'category_screen.dart';
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final lp = Provider.of<LessonProvider>(context);
@@ -50,7 +52,7 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             );
-          }).toList(),
+          }),
         ],
       ),),
     );
@@ -101,10 +103,10 @@ class _AlphabetEntryCard extends StatelessWidget {
             const SizedBox(width: 16),
 
             /// Text
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Learn the Alphabet',
                     style: TextStyle(

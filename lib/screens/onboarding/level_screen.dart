@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/onboarding_service.dart';
 import '../../widgets/choice_card.dart';
 import '../../widgets/animated_bg.dart';
 import '../../widgets/fade_page.dart';
@@ -37,7 +38,10 @@ class LevelScreen extends StatelessWidget {
                       children: levels
                           .map((level) => ChoiceCard(
                                 label: level,
-                                onTap: () => context.push('/onboarding/reason'),
+                                onTap: () async {
+                                  await OnboardingService.setValue(OnboardingService.keyLevel, level);
+                                  context.push('/onboarding/reason');
+                                },
                               ))
                           .toList(),
                     ),

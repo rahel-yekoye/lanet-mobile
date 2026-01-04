@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 class AlphabetFamilyScreen extends StatefulWidget {
   final String family;
 
-  const AlphabetFamilyScreen({required this.family, Key? key}) : super(key: key);
+  const AlphabetFamilyScreen({required this.family, super.key});
 
   @override
   State<AlphabetFamilyScreen> createState() => _AlphabetFamilyScreenState();
@@ -120,7 +120,7 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
   void _generateNewQuestion() {
     final shuffled = List<FidelModel>.from(familyItems)..shuffle();
     _currentTarget = shuffled.first;
-    _quizOptions = [shuffled.first]..addAll(shuffled.skip(1).take(3))..shuffle();
+    _quizOptions = [shuffled.first, ...shuffled.skip(1).take(3)]..shuffle();
 
     _playSound(_currentTarget!.audioFile);
   }

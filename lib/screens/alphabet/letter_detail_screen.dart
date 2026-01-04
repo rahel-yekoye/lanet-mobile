@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:lanet_mobile/models/fidel_model.dart';
 import 'package:lanet_mobile/widgets/cultural_border.dart';
-import 'package:lanet_mobile/theme/theme.dart';
 
 
 class LetterDetailScreen extends StatefulWidget {
   final FidelModel fidel;
 
-  const LetterDetailScreen({required this.fidel, Key? key}) : super(key: key);
+  const LetterDetailScreen({required this.fidel, super.key});
 
   @override
   State<LetterDetailScreen> createState() => _LetterDetailScreenState();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/onboarding_service.dart';
 import '../../widgets/choice_card.dart';
 import '../../widgets/animated_bg.dart';
 import '../../widgets/fade_page.dart';
@@ -43,7 +44,10 @@ class LanguageScreen extends StatelessWidget {
                       children: languages
                           .map((lang) => ChoiceCard(
                                 label: lang,
-                                onTap: () => context.push('/onboarding/level'),
+                                onTap: () async {
+                                  await OnboardingService.setValue(OnboardingService.keyLanguage, lang);
+                                  context.push('/onboarding/level');
+                                },
                               ))
                           .toList(),
                     ),

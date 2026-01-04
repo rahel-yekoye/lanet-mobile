@@ -7,12 +7,12 @@ class CulturalScaffold extends StatelessWidget {
   final bool showBottomBorder;
 
   const CulturalScaffold({
-    Key? key,
+    super.key,
     required this.body,
     this.headerImage,
     this.showTopBorder = true,
     this.showBottomBorder = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

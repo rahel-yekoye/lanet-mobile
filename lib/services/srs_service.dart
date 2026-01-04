@@ -16,7 +16,7 @@ class SRSService {
     await sp.setString(_kKey, json.encode(m));
   }
 
-  String _keyFor(String category, String english) => '${category}||${english}';
+  String _keyFor(String category, String english) => '$category||$english';
 
   Future<Map<String, dynamic>> getProgress(String category, String english) async {
     final all = await _readAll();

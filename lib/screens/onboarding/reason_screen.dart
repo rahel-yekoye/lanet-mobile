@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/onboarding_service.dart';
 import '../../widgets/choice_card.dart';
 import '../../widgets/animated_bg.dart';
 import '../../widgets/fade_page.dart';
@@ -37,7 +38,10 @@ class ReasonScreen extends StatelessWidget {
                       children: reasons
                           .map((reason) => ChoiceCard(
                                 label: reason,
-                                onTap: () => context.push('/onboarding/daily_goal'),
+                                onTap: () async {
+                                  await OnboardingService.setValue(OnboardingService.keyReason, reason);
+                                  context.push('/onboarding/daily_goal');
+                                },
                               ))
                           .toList(),
                     ),

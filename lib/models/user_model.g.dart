@@ -66,3 +66,35 @@ class UserAdapter extends TypeAdapter<User> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+User _$UserFromJson(Map<String, dynamic> json) => User(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      avatarUrl: json['avatarUrl'] as String?,
+      xp: (json['xp'] as num?)?.toInt() ?? 0,
+      level: (json['level'] as num?)?.toInt() ?? 1,
+      streak: (json['streak'] as num?)?.toInt() ?? 0,
+      lastActiveDate: json['lastActiveDate'] == null
+          ? null
+          : DateTime.parse(json['lastActiveDate'] as String),
+      dailyGoal: (json['dailyGoal'] as num?)?.toInt() ?? 100,
+      dailyXpEarned: (json['dailyXpEarned'] as num?)?.toInt() ?? 0,
+      settings: json['settings'] as Map<String, dynamic>?,
+    );
+
+Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'avatarUrl': instance.avatarUrl,
+      'xp': instance.xp,
+      'level': instance.level,
+      'streak': instance.streak,
+      'lastActiveDate': instance.lastActiveDate.toIso8601String(),
+      'dailyGoal': instance.dailyGoal,
+      'dailyXpEarned': instance.dailyXpEarned,
+      'settings': instance.settings,
+    };

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/onboarding_service.dart';
 import '../../widgets/choice_card.dart';
 import '../../widgets/animated_bg.dart';
 import '../../widgets/fade_page.dart';
@@ -37,7 +38,17 @@ class DailyGoalScreen extends StatelessWidget {
                       children: goals
                           .map((goal) => ChoiceCard(
                                 label: goal,
-                                onTap: () => context.go('/home'),
+                                onTap: () async {
+                                  await OnboardingService.setValue(OnboardingService.keyGoal, goal);
+                                  await OnboardingService.completeOnboarding();
+                                  
+                                  // Get all selections to potentially create/register user
+                                  final selections = await OnboardingService.getSelections();
+                                  
+                                  // For now, navigate to home - in a real implementation you might want to 
+                                  // register the user first if authentication is required
+                                  context.go('/home');
+                                },
                               ))
                           .toList(),
                     ),

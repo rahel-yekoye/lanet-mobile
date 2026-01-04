@@ -1,7 +1,10 @@
 import 'package:equatable/equatable.dart';
 import 'package:hive/hive.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'user_model.g.dart';
+
+@JsonSerializable()
 
 @HiveType(typeId: 0)
 class User extends Equatable {
@@ -48,6 +51,10 @@ class User extends Equatable {
     Map<String, dynamic>? settings,
   }) : lastActiveDate = lastActiveDate ?? DateTime.now(),
        settings = settings ?? {};
+
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+  
+  Map<String, dynamic> toJson() => _$UserToJson(this);
 
   User copyWith({
     String? id,
