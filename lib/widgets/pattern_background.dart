@@ -7,11 +7,11 @@ class PatternBackground extends StatelessWidget {
   final bool includeBottomPadding;
 
   const PatternBackground({
-    Key? key,
+    super.key,
     required this.child,
     this.includeTopPadding = true,
     this.includeBottomPadding = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +24,8 @@ class PatternBackground extends StatelessWidget {
             child: Image.asset(
               'assets/images/patterns/page_border.png',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stack) =>
+                  Container(color: Colors.white),
             ),
           ),
           // Content with custom padding instead of SafeArea
@@ -43,6 +45,8 @@ class PatternBackground extends StatelessWidget {
           child: Image.asset(
             'assets/images/patterns/page_border.png',
             fit: BoxFit.cover,
+            errorBuilder: (context, error, stack) =>
+                Container(color: Colors.white),
           ),
         ),
         // Content

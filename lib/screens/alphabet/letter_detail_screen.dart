@@ -3,12 +3,12 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:lanet_mobile/models/fidel_model.dart';
 import 'package:lanet_mobile/widgets/cultural_border.dart';
 import 'package:lanet_mobile/theme/theme.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 
 class LetterDetailScreen extends StatefulWidget {
   final FidelModel fidel;
 
-  const LetterDetailScreen({required this.fidel, Key? key}) : super(key: key);
+  const LetterDetailScreen({required this.fidel, super.key});
 
   @override
   State<LetterDetailScreen> createState() => _LetterDetailScreenState();
@@ -19,7 +19,8 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
 
   Future<void> _playAudio() async {
     if (widget.fidel.audioFile.isNotEmpty) {
-      await _audioPlayer.play(AssetSource('assets/audio/${widget.fidel.audioFile}'));
+      await _audioPlayer
+          .play(AssetSource('assets/audio/${widget.fidel.audioFile}'));
     } else {
       // Optional: fallback sound or message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,7 +49,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
             // Big Fidel Character
             Text(
               widget.fidel.character,
-              style: const TextStyle(fontSize: 140, fontFamily: 'NotoEthiopic'),
+              style: GoogleFonts.notoSansEthiopic(fontSize: 140),
             ),
             const SizedBox(height: 32),
 
@@ -63,7 +64,8 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
             if (widget.fidel.vowel.isNotEmpty)
               Text(
                 widget.fidel.vowel,
-                style: const TextStyle(fontSize: 32, color: Colors.orangeAccent),
+                style:
+                    const TextStyle(fontSize: 32, color: Colors.orangeAccent),
               ),
 
             const SizedBox(height: 60),
@@ -77,7 +79,8 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                 style: TextStyle(fontSize: 24),
               ),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(32),
                 ),
