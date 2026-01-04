@@ -25,6 +25,14 @@ class TTSService {
       String.fromEnvironment('HASAB_API_KEY', defaultValue: '');
   static const String _preferredSpeaker =
       String.fromEnvironment('HASAB_TTS_SPEAKER', defaultValue: '');
+  static const String _speakerAmh =
+      String.fromEnvironment('HASAB_TTS_SPEAKER_AMH', defaultValue: '');
+  static const String _speakerTir =
+      String.fromEnvironment('HASAB_TTS_SPEAKER_TIR', defaultValue: '');
+  static const String _speakerOro =
+      String.fromEnvironment('HASAB_TTS_SPEAKER_ORO', defaultValue: '');
+  static const String _speakerEng =
+      String.fromEnvironment('HASAB_TTS_SPEAKER_ENG', defaultValue: '');
   static const String _proxyEndpoint =
       String.fromEnvironment('HASAB_TTS_PROXY', defaultValue: '');
   jaudio.AudioPlayer? _webPlayer;
@@ -83,7 +91,7 @@ class TTSService {
         }
       } catch (_) {}
       await _tts.setLanguage(target);
-      await _tts.setSpeechRate(0.5);
+      await _tts.setSpeechRate(0.85);
       await _tts.setPitch(1.0);
       await _tts.setVolume(1.0);
       await _tts.awaitSpeakCompletion(true);
@@ -126,10 +134,31 @@ class TTSService {
         'Content-Type': 'application/json',
         if (_remoteApiKey.isNotEmpty) 'Authorization': 'Bearer $_remoteApiKey',
       };
+      String? sp;
+      if (_preferredSpeaker.isNotEmpty) {
+        sp = _preferredSpeaker;
+      } else {
+        switch (hasabLang) {
+          case 'amh':
+            sp = _speakerAmh.isNotEmpty ? _speakerAmh : 'hanna';
+            break;
+          case 'tir':
+            sp = _speakerTir.isNotEmpty ? _speakerTir : 'selam';
+            break;
+          case 'oro':
+            sp = _speakerOro.isNotEmpty ? _speakerOro : null;
+            break;
+          case 'eng':
+            sp = _speakerEng.isNotEmpty ? _speakerEng : null;
+            break;
+          default:
+            sp = null;
+        }
+      }
       final req = {
         'text': text,
         'language': hasabLang,
-        if (_preferredSpeaker.isNotEmpty) 'speaker_name': _preferredSpeaker,
+        if (sp != null) 'speaker_name': sp,
       };
       final body = json.encode(req);
       final endpoint = (kIsWeb && _proxyEndpoint.isNotEmpty)
