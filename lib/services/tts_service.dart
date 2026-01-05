@@ -72,7 +72,8 @@ class TTSService {
     return sb.toString();
   }
 
-  Future<void> speak(String text, {String? langCode}) async {
+  Future<void> speak(String text,
+      {String? langCode, double playbackRate = 1.0}) async {
     if (text.trim().isEmpty) return;
     final lc = _mapLang(langCode);
     String speakText = text;
@@ -91,7 +92,8 @@ class TTSService {
         }
       } catch (_) {}
       await _tts.setLanguage(target);
-      await _tts.setSpeechRate(0.85);
+      final speakRate = (0.85 * playbackRate);
+      await _tts.setSpeechRate(speakRate);
       await _tts.setPitch(1.0);
       await _tts.setVolume(1.0);
       await _tts.awaitSpeakCompletion(true);
@@ -99,7 +101,8 @@ class TTSService {
     } catch (_) {}
   }
 
-  Future<bool> play(String text, {String? langCode}) async {
+  Future<bool> play(String text,
+      {String? langCode, double playbackRate = 1.0}) async {
     // Try remote synthesis first if configured
     if (_remoteEndpoint.isNotEmpty) {
       final urlOrPath = await _synthesizeRemote(text, langCode: langCode);
@@ -108,8 +111,12 @@ class TTSService {
           if (kIsWeb) {
             _webPlayer ??= jaudio.AudioPlayer();
             await _webPlayer!.setUrl(urlOrPath);
+            await _webPlayer!.setSpeed(playbackRate);
             await _webPlayer!.play();
           } else {
+            try {
+              await _mobilePlayer.setPlaybackRate(playbackRate);
+            } catch (_) {}
             await _mobilePlayer.play(ap.DeviceFileSource(urlOrPath));
           }
           return true;
@@ -118,7 +125,7 @@ class TTSService {
         }
       }
     }
-    await speak(text, langCode: langCode);
+    await speak(text, langCode: langCode, playbackRate: playbackRate);
     return false;
   }
 
@@ -161,9 +168,16 @@ class TTSService {
         if (sp != null) 'speaker_name': sp,
       };
       final body = json.encode(req);
-      final endpoint = (kIsWeb && _proxyEndpoint.isNotEmpty)
-          ? _proxyEndpoint
-          : _remoteEndpoint;
+      String endpoint;
+      if (kIsWeb && _proxyEndpoint.isNotEmpty) {
+        endpoint = _proxyEndpoint;
+        if (!endpoint.contains('/v1/tts/synthesize')) {
+          endpoint = endpoint.replaceAll(RegExp(r'/+$'), '');
+          endpoint = '$endpoint/v1/tts/synthesize';
+        }
+      } else {
+        endpoint = _remoteEndpoint;
+      }
       final url = Uri.parse(endpoint);
       final resp = await http
           .post(url, headers: headers, body: body)

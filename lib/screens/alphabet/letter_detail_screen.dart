@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:lanet_mobile/models/fidel_model.dart';
 import 'package:lanet_mobile/widgets/cultural_border.dart';
-import 'package:lanet_mobile/theme/theme.dart';
+import 'package:lanet_mobile/widgets/speech_practice.dart';
+import 'package:lanet_mobile/services/srs_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class LetterDetailScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class LetterDetailScreen extends StatefulWidget {
 
 class _LetterDetailScreenState extends State<LetterDetailScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final SRSService _srs = SRSService();
 
   Future<void> _playAudio() async {
     if (widget.fidel.audioFile.isNotEmpty) {
@@ -86,6 +88,36 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                 ),
                 backgroundColor: Colors.deepOrange.shade400,
               ),
+            ),
+
+            const SizedBox(height: 24),
+
+            SpeechPractice(
+              prompt: 'Repeat this sound',
+              targetText: widget.fidel.character,
+              onResult: (ok) async {
+                if (ok) {
+                  await _srs.markCorrect('alphabet', widget.fidel.character);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Colors.green,
+                        content: Text('Good pronunciation!'),
+                      ),
+                    );
+                  }
+                } else {
+                  await _srs.markWrong('alphabet', widget.fidel.character);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Colors.orange,
+                        content: Text('Try again'),
+                      ),
+                    );
+                  }
+                }
+              },
             ),
 
             const Spacer(),

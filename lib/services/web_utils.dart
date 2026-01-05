@@ -4,8 +4,8 @@ import 'dart:async';
 
 class BlobData {
   final Uint8List bytes;
-  final String mimeType;
-  BlobData(this.bytes, this.mimeType);
+  final String? mimeType;
+  BlobData(this.bytes, [this.mimeType]);
 }
 
 Future<Uint8List> readFileBytesWeb(dynamic file) async {
@@ -29,11 +29,6 @@ Future<Uint8List> readFileBytesWeb(dynamic file) async {
   return await completer.future;
 }
 
-Future<Uint8List> fetchBlobUrl(String url) async {
-  final data = await fetchBlobData(url);
-  return data.bytes;
-}
-
 Future<BlobData> fetchBlobData(String url) async {
   final completer = Completer<BlobData>();
   final request = html.HttpRequest();
@@ -44,9 +39,8 @@ Future<BlobData> fetchBlobData(String url) async {
     if (request.status == 200) {
       final buffer = request.response as ByteBuffer;
       final bytes = Uint8List.view(buffer);
-      final mimeType = request.getResponseHeader('Content-Type') ??
-          'application/octet-stream';
-      completer.complete(BlobData(bytes, mimeType));
+      final mime = request.getResponseHeader('Content-Type');
+      completer.complete(BlobData(bytes, mime));
     } else {
       completer.completeError('Failed to fetch blob: ${request.statusText}');
     }
