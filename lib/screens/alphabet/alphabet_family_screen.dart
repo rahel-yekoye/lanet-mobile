@@ -7,6 +7,7 @@ import 'package:lanet_mobile/screens/alphabet/letter_detail_screen.dart';
 import 'package:lanet_mobile/services/srs_service.dart';
 import 'package:lanet_mobile/widgets/pattern_background.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AlphabetFamilyScreen extends StatefulWidget {
   final String family;
@@ -96,7 +97,8 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
   Future<void> _playSound(String audioFile) async {
     if (audioFile.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🔊 Audio coming soon! Imagine the sound 😊')),
+        const SnackBar(
+            content: Text('🔊 Audio coming soon! Imagine the sound 😊')),
       );
       return;
     }
@@ -104,7 +106,8 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
       await _audioPlayer.play(AssetSource('assets/audio/$audioFile'));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🔊 Audio not ready yet — quiz continues!')),
+        const SnackBar(
+            content: Text('🔊 Audio not ready yet — quiz continues!')),
       );
     }
   }
@@ -175,7 +178,7 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
           children: [
             Text(
               fidel.character,
-              style: const TextStyle(fontSize: 48, fontFamily: 'NotoEthiopic'),
+              style: GoogleFonts.notoSansEthiopic(fontSize: 48),
             ),
             const SizedBox(height: 8),
             Text(
@@ -220,9 +223,14 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Text('Score: $_score', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+          Text('Score: $_score',
+              style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepOrange)),
           const SizedBox(height: 30),
-          const Text('🔊 Listen and tap the correct letter!', style: TextStyle(fontSize: 20)),
+          const Text('🔊 Listen and tap the correct letter!',
+              style: TextStyle(fontSize: 20)),
           const SizedBox(height: 40),
           Expanded(
             child: GridView.builder(
@@ -236,7 +244,8 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
                 final option = _quizOptions[i];
                 return Card(
                   elevation: 10,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28)),
                   color: Colors.amber.shade50,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(28),
@@ -244,7 +253,7 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
                     child: Center(
                       child: Text(
                         option.character,
-                        style: const TextStyle(fontSize: 80, fontFamily: 'NotoEthiopic'),
+                        style: GoogleFonts.notoSansEthiopic(fontSize: 80),
                       ),
                     ),
                   ),

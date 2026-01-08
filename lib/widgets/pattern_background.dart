@@ -62,8 +62,16 @@ class PatternBackground extends StatelessWidget {
     if (kIsWeb) {
       return Stack(
         children: [
-          Positioned.fill(child: backgroundContent),
-          // Add some padding for web to account for browser chrome
+          // Background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/patterns/page_border.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stack) =>
+                  Container(color: Colors.white),
+            ),
+          ),
+          // Content with custom padding instead of SafeArea
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: content,
@@ -75,8 +83,21 @@ class PatternBackground extends StatelessWidget {
     // For mobile, use the standard approach
     return Stack(
       children: [
-        Positioned.fill(child: backgroundContent),
-        content,
+        // Background image
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/patterns/page_border.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stack) =>
+                Container(color: Colors.white),
+          ),
+        ),
+        // Content
+        SafeArea(
+          top: includeTopPadding,
+          bottom: includeBottomPadding,
+          child: child,
+        ),
       ],
     );
   }

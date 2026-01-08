@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:google_fonts/google_fonts.dart';
+
 
 import 'providers/lesson_provider.dart';
 import 'providers/fidel_provider.dart';
@@ -21,7 +25,7 @@ import 'screens/onboarding/reason_screen.dart';
 import 'screens/onboarding/daily_goal_screen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -52,14 +56,20 @@ class MyApp extends StatelessWidget {
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
             title: 'Lanet — Language Learner',
-            theme: ThemeData(
-              primarySwatch: Colors.teal,
-              scaffoldBackgroundColor: Colors.transparent,
-              appBarTheme: const AppBarTheme(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              ),
-            ),
+            theme: () {
+              final base = ThemeData(
+                colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+                useMaterial3: true,
+                scaffoldBackgroundColor: Colors.transparent,
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                ),
+              );
+              return base.copyWith(
+                textTheme: GoogleFonts.notoSansEthiopicTextTheme(base.textTheme),
+              );
+            }(),
             routerConfig: _router(authProvider),
           );
         },
@@ -134,8 +144,8 @@ GoRouter _router(AuthProvider authProvider) {
       
       // Main app routes
       GoRoute(
-      path: '/home',
-      builder: (_, __) =>  HomeScreen(),
+        path: '/home',
+        builder: (_, __) => const HomeScreen(),
       ),
     ],
   );

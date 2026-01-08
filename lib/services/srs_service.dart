@@ -18,7 +18,8 @@ class SRSService {
 
   String _keyFor(String category, String english) => '$category||$english';
 
-  Future<Map<String, dynamic>> getProgress(String category, String english) async {
+  Future<Map<String, dynamic>> getProgress(
+      String category, String english) async {
     final all = await _readAll();
     final k = _keyFor(category, english);
     return all[k] ?? {};
@@ -62,7 +63,8 @@ class SRSService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> dueNow(List<Map<String, String>> phraseList) async {
+  Future<List<Map<String, dynamic>>> dueNow(
+      List<Map<String, String>> phraseList) async {
     final all = await _readAll();
     final now = DateTime.now().toUtc().millisecondsSinceEpoch;
     final due = <Map<String, dynamic>>[];

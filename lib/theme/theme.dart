@@ -1,11 +1,13 @@
 // lib/theme/app_theme.dart
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Paleta cálida etíope (beige, naranja, marrón)
   static const Color beigeBackground = Color(0xFFF5E8D4);
   static const Color creamCard = Color(0xFFFFF3E8);
-  static const Color orangeAccent = Color(0xFFF97316); // naranja vivo pero cálido
+  static const Color orangeAccent =
+      Color(0xFFF97316); // naranja vivo pero cálido
   static const Color deepOrange = Color(0xFFDD6B20);
   static const Color brownText = Color(0xFF5D4037);
   static const Color darkBrown = Color(0xFF4E342E);
@@ -31,11 +33,10 @@ class AppTheme {
     color: Colors.white,
   );
 
-  static const TextStyle characterStyle = TextStyle(
+  static TextStyle characterStyle = GoogleFonts.notoSansEthiopic(
     fontSize: 48,
     fontWeight: FontWeight.bold,
     color: darkBrown,
-    fontFamily: 'NotoEthiopic',
   );
 
   static const TextStyle transliterationStyle = TextStyle(
@@ -62,7 +63,7 @@ class AppTheme {
         actionsIconTheme: IconThemeData(color: darkBrown),
         titleTextStyle: appBarTitleStyle,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: creamCard,
         elevation: 6,
         shadowColor: Colors.black26,
