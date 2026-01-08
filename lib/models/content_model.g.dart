@@ -73,6 +73,12 @@ class ContentTypeAdapter extends TypeAdapter<ContentType> {
         return ContentType.fillInBlank;
       case 3:
         return ContentType.listening;
+      case 4:
+        return ContentType.speaking;
+      case 5:
+        return ContentType.matching;
+      case 6:
+        return ContentType.reorder;
       default:
         return ContentType.flashcard;
     }
@@ -94,14 +100,14 @@ class ContentTypeAdapter extends TypeAdapter<ContentType> {
         writer.writeByte(3);
         break;
       case ContentType.speaking:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        writer.writeByte(4);
+        break;
       case ContentType.matching:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        writer.writeByte(5);
+        break;
       case ContentType.reorder:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        writer.writeByte(6);
+        break;
     }
   }
 

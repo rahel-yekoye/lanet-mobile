@@ -7,6 +7,7 @@ import 'providers/lesson_provider.dart';
 import 'providers/fidel_provider.dart';
 import 'providers/auth_provider.dart';
 import 'services/dataset_service.dart';
+import 'services/onboarding_service.dart';
 import 'screens/home_screen.dart';
 
 // Auth screens
@@ -74,16 +75,30 @@ class MyApp extends StatelessWidget {
 GoRouter _router(AuthProvider authProvider) {
   return GoRouter(
     initialLocation: authProvider.isAuthenticated ? '/home' : '/login',
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final isAuth = authProvider.isAuthenticated;
       final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/register';
+      final isOnboardingRoute = state.uri.path.startsWith('/onboarding');
       
-      if (!isAuth && !isAuthRoute) {
+      if (!isAuth && !isAuthRoute && !isOnboardingRoute) {
         return '/login';
       }
       
       if (isAuth && isAuthRoute) {
+        // Check if onboarding is completed, if not, redirect to onboarding
+        final onboardingCompleted = await OnboardingService.isCompleted();
+        if (!onboardingCompleted) {
+          return '/onboarding/language';
+        }
         return '/home';
+      }
+      
+      // If user is authenticated but hasn't completed onboarding and tries to access home
+      if (isAuth && state.uri.path == '/home') {
+        final onboardingCompleted = await OnboardingService.isCompleted();
+        if (!onboardingCompleted) {
+          return '/onboarding/language';
+        }
       }
       
       return null;

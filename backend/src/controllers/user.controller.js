@@ -1,4 +1,5 @@
 const User = require('../models/user.model');
+const db = require('../config/db');
 
 const userController = {
   async savePreferences(req, res) {
@@ -6,7 +7,7 @@ const userController = {
       const { language, level, reason, dailyGoal } = req.body;
       const userId = req.user.userId;
 
-      const preferences = await User.savePreferences(userId, {
+      const updatedUser = await User.updatePreferences(userId, {
         language,
         level,
         reason,
@@ -15,7 +16,7 @@ const userController = {
 
       res.json({
         message: 'Preferences saved successfully',
-        preferences
+        user: updatedUser
       });
     } catch (error) {
       console.error('Save preferences error:', error);
@@ -49,6 +50,27 @@ const userController = {
     } catch (error) {
       console.error('Get profile error:', error);
       res.status(500).json({ message: 'Error fetching profile' });
+    }
+  },
+
+  async updateProfile(req, res) {
+    try {
+      const { name, language, level, reason, dailyGoal } = req.body;
+      const userId = req.user.userId;
+
+      // Update user profile with provided fields
+      const updatedUser = await User.updatePreferences(userId, {
+        name,
+        language,
+        level,
+        reason,
+        dailyGoal
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Update profile error:', error);
+      res.status(500).json({ message: 'Error updating profile' });
     }
   }
 };

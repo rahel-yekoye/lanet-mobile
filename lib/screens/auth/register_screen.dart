@@ -187,15 +187,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
 
             // Login link
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("Already have an account?"),
-                TextButton(
-                  onPressed: () => context.go('/login'),
-                  child: const Text('Log In'),
+            Container(
+              alignment: Alignment.center,
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  children: [
+                    const TextSpan(text: "Already have an account? "),
+                    WidgetSpan(
+                      child: TextButton(
+                        onPressed: () => context.go('/login'),
+                        child: const Text('Log In'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),

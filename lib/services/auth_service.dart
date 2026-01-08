@@ -75,14 +75,29 @@ class AuthService {
       );
 
       final responseData = _handleResponse(response);
+      final userData = responseData['user'];
+      
+      // Filter the API response to match the User model expectations
+      // Extract onboarding preferences separately to avoid conflicts
+      final filteredUserData = {
+        'id': userData['id'],
+        'name': userData['name'],
+        'xp': userData['xp'] ?? 0,
+        'level': (userData['level'] is int) ? userData['level'] : 1, // Ensure it's an int, default to 1
+        'streak': userData['streak'] ?? 0,
+        'lastActiveDate': userData['created_at'],
+        'dailyGoal': (userData['daily_goal'] is int) ? userData['daily_goal'] : ((userData['dailyGoal'] is int) ? userData['dailyGoal'] : 100),
+        'dailyXpEarned': userData['dailyXpEarned'] ?? 0,
+        'settings': userData['settings'] ?? {},
+      };
 
       // Save auth data
       await _saveAuthData(
         responseData['token'],
-        responseData['user'],
+        userData, // Store the original user data with all fields
       );
 
-      return User.fromJson(responseData['user']);
+      return User.fromJson(filteredUserData);
     } catch (e) {
       developer.log('Login error: $e');
       rethrow;
@@ -115,14 +130,29 @@ class AuthService {
       );
 
       final responseData = _handleResponse(response);
+      final userData = responseData['user'];
+      
+      // Filter the API response to match the User model expectations
+      // Extract onboarding preferences separately to avoid conflicts
+      final filteredUserData = {
+        'id': userData['id'],
+        'name': userData['name'],
+        'xp': userData['xp'] ?? 0,
+        'level': (userData['level'] is int) ? userData['level'] : 1, // Ensure it's an int, default to 1
+        'streak': userData['streak'] ?? 0,
+        'lastActiveDate': userData['created_at'],
+        'dailyGoal': (userData['daily_goal'] is int) ? userData['daily_goal'] : ((userData['dailyGoal'] is int) ? userData['dailyGoal'] : 100),
+        'dailyXpEarned': userData['dailyXpEarned'] ?? 0,
+        'settings': userData['settings'] ?? {},
+      };
 
       // Save auth data
       await _saveAuthData(
         responseData['token'],
-        responseData['user'],
+        userData, // Store the original user data with all fields
       );
 
-      return User.fromJson(responseData['user']);
+      return User.fromJson(filteredUserData);
     } catch (e) {
       developer.log('Registration error: $e');
       rethrow;
@@ -152,7 +182,21 @@ class AuthService {
       );
 
       final responseData = _handleResponse(response);
-      return User.fromJson(responseData);
+      
+      // Filter the API response to match the User model expectations
+      final filteredUserData = {
+        'id': responseData['id'],
+        'name': responseData['name'],
+        'xp': responseData['xp'] ?? 0,
+        'level': responseData['level'] is int ? responseData['level'] : 1, // Ensure it's an int, default to 1
+        'streak': responseData['streak'] ?? 0,
+        'lastActiveDate': responseData['created_at'],
+        'dailyGoal': (responseData['daily_goal'] is int) ? responseData['daily_goal'] : ((responseData['dailyGoal'] is int) ? responseData['dailyGoal'] : 100),
+        'dailyXpEarned': responseData['dailyXpEarned'] ?? 0,
+        'settings': responseData['settings'] ?? {},
+      };
+      
+      return User.fromJson(filteredUserData);
     } catch (e) {
       developer.log('Get current user error: $e');
       rethrow;
@@ -181,12 +225,27 @@ class AuthService {
       );
 
       final responseData = _handleResponse(response);
+      
+      // Filter the API response to match the User model expectations
+      // Extract onboarding preferences separately to avoid conflicts
+      final filteredUserData = {
+        'id': responseData['id'],
+        'name': responseData['name'],
+        'xp': responseData['xp'] ?? 0,
+        'level': responseData['level'] is int ? responseData['level'] : 1, // Ensure it's an int, default to 1
+        'streak': responseData['streak'] ?? 0,
+        'lastActiveDate': responseData['created_at'],
+        'dailyGoal': (responseData['daily_goal'] is int) ? responseData['daily_goal'] : ((responseData['dailyGoal'] is int) ? responseData['dailyGoal'] : 100),
+        'dailyXpEarned': responseData['dailyXpEarned'] ?? 0,
+        'settings': responseData['settings'] ?? {},
+      };
+      
       await _saveAuthData(
         await getToken() ?? '',
         responseData,
       );
 
-      return User.fromJson(responseData);
+      return User.fromJson(filteredUserData);
     } catch (e) {
       developer.log('Update profile error: $e');
       rethrow;

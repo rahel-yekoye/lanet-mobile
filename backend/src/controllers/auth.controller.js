@@ -54,7 +54,7 @@ const authController = {
       }
 
       // Create user
-      const user = await User.create({ name, email, password });
+      const user = await User.create({ name, email, password, language: req.body.language, level: req.body.level, reason: req.body.reason, dailyGoal: req.body.dailyGoal });
       console.log('User created:', { userId: user.id, email: user.email });
 
       // Generate JWT token
@@ -69,6 +69,10 @@ const authController = {
         id: user.id,
         name: user.name,
         email: user.email,
+        language: user.language,
+        level: user.level,
+        reason: user.reason,
+        daily_goal: user.daily_goal,
         created_at: user.created_at
       };
 
@@ -143,6 +147,10 @@ if (!validPassword) {
         id: user.id,
         name: user.name,
         email: user.email,
+        language: user.language,
+        level: user.level,
+        reason: user.reason,
+        daily_goal: user.daily_goal,
         created_at: user.created_at
       };
 

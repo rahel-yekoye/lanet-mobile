@@ -13,8 +13,11 @@ enum ContentType {
   fillInBlank,
   @HiveField(3)
   listening,
+  @HiveField(4)
   speaking,
+  @HiveField(5)
   matching,
+  @HiveField(6)
   reorder,
 }
 

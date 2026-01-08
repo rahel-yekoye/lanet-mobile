@@ -1,0 +1,6 @@
+-- Add onboarding preference fields to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS level VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reason VARCHAR(100);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_goal INTEGER DEFAULT 5;
+

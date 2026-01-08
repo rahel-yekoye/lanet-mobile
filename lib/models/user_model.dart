@@ -1,10 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:hive/hive.dart';
-import 'package:json_annotation/json_annotation.dart';
 
-part 'user_model.g.dart';
-
-@JsonSerializable()
 
 @HiveType(typeId: 0)
 class User extends Equatable {
@@ -27,7 +23,7 @@ class User extends Equatable {
   final int streak;
   
   @HiveField(6)
-  final DateTime lastActiveDate;
+  final DateTime? lastActiveDate;
   
   @HiveField(7)
   final int dailyGoal;
@@ -52,9 +48,41 @@ class User extends Equatable {
   }) : lastActiveDate = lastActiveDate ?? DateTime.now(),
        settings = settings ?? {};
 
-  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      avatarUrl: json['avatarUrl'] as String?,
+      xp: json['xp'] as int? ?? 0,
+      level: json['level'] as int? ?? 1,
+      streak: json['streak'] as int? ?? 0,
+      lastActiveDate: json['lastActiveDate'] != null 
+        ? (json['lastActiveDate'] is String 
+            ? DateTime.tryParse(json['lastActiveDate']) 
+            : json['lastActiveDate'] is DateTime 
+                ? json['lastActiveDate'] 
+                : DateTime.now()) 
+        : DateTime.now(),
+      dailyGoal: json['dailyGoal'] as int? ?? 100,
+      dailyXpEarned: json['dailyXpEarned'] as int? ?? 0,
+      settings: (json['settings'] as Map<dynamic, dynamic>?)?.cast<String, dynamic>() ?? {},
+    );
+  }
   
-  Map<String, dynamic> toJson() => _$UserToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'avatarUrl': avatarUrl,
+      'xp': xp,
+      'level': level,
+      'streak': streak,
+      'lastActiveDate': lastActiveDate?.toIso8601String(),
+      'dailyGoal': dailyGoal,
+      'dailyXpEarned': dailyXpEarned,
+      'settings': settings.cast<String, dynamic>(),
+    };
+  }
 
   User copyWith({
     String? id,
