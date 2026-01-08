@@ -45,13 +45,14 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   audioplayers: ^6.5.1
-  
+
   # Authentication and Database
   http: ^1.1.2
   crypto: ^3.0.3
   jwt_decoder: ^2.0.1
   postgres: ^3.0.3
   path: ^1.9.0
+
 
 dev_dependencies:
   flutter_test:

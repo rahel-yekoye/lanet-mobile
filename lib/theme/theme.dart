@@ -63,12 +63,13 @@ class AppTheme {
         actionsIconTheme: IconThemeData(color: darkBrown),
         titleTextStyle: appBarTitleStyle,
       ),
-      cardTheme: CardThemeData(
+
+      cardTheme: const CardThemeData(
         color: creamCard,
         elevation: 6,
         shadowColor: Colors.black26,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.all(Radius.circular(24)),
         ),
       ),
       textTheme: const TextTheme(
