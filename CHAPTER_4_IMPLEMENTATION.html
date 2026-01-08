@@ -1,0 +1,225 @@
+ <!doctype html>
+ <html lang="en">
+ <head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>Chapter Four — Implementation</title>
+   <style>body{font-family:Arial,Helvetica,sans-serif;line-height:1.4;margin:24px}pre{background:#f6f8fa;padding:12px;overflow:auto}</style>
+ </head>
+ <body>
+ <h1>Chapter Four — Implementation</h1>
+ <h2>4.1 Introduction</h2>
+ <p>This chapter describes the implementation of the system designed in the design phase. The chosen stack for this workspace is Flutter (Dart) using object-oriented design. The implementation is organized using classes and packages that mirror the design: models, services (data access), providers (business logic/state), screens/controllers and widgets.</p>
+ <h2>4.2 Implementation Overview (OOP mapping)</h2>
+ <ul>
+ <li>Models (<code>lib/models/</code>): Plain Dart classes representing domain entities (serializable).</li>
+ <li>Services (<code>lib/services/</code>): Encapsulate data access (asset parsing, local persistence, remote APIs).</li>
+ <li>Providers (<code>lib/providers/</code>): <code>ChangeNotifier</code>-based classes exposing business logic and state to the UI.</li>
+ <li>Screens/Controllers (<code>lib/screens/</code>, <code>lib/widgets/</code>): Flutter UI classes that consume providers.</li>
+ <li>Persistence: Example uses <code>hive</code> for local storage; adaptable to your current <code>hive_services.dart</code>.</li>
+ </ul>
+ <h2>4.3 Key classes and responsibilities</h2>
+ <ul>
+ <li><code>Lesson</code> model: domain object for a lesson.</li>
+ <li><code>DatasetService</code>: loads bundled JSON/CSV dataset and converts to <code>Lesson</code> objects.</li>
+ <li><code>HiveServices</code>: local storage layer to cache lessons.</li>
+ <li><code>LessonProvider</code>: orchestrates loading lessons and exposing them to UI.</li>
+ <li><code>LessonScreen</code>: displays the list of lessons and navigates to detail/practice views.</li>
+ </ul>
+ <h2>4.4 Implementation details and code samples</h2>
+ <p>Below are concise, commented, copy-paste-ready examples. Place them under <code>lib/</code> as indicated by filenames.</p>
+ <h3>4.4.1 Model: <code>lib/models/lesson.dart</code></h3>
+ <pre><code>// lib/models/lesson.dart
+ import 'package:json_annotation/json_annotation.dart';
+
+ part 'lesson.g.dart';
+
+ @JsonSerializable()
+ class Lesson {
+   final String id;
+   final String title;
+   final List<String> phrases; // phrases inside the lesson
+   final int order; // ordering key
+
+   Lesson({
+     required this.id,
+     required this.title,
+     required this.phrases,
+     required this.order,
+   });
+
+   // JSON serialization (use build_runner to generate)
+   factory Lesson.fromJson(Map<String, dynamic> json) => _$LessonFromJson(json);
+   Map<String, dynamic> toJson() => _$LessonToJson(this);
+ }
+ </code></pre>
+ <h3>4.4.2 Dataset loader: <code>lib/services/dataset_service.dart</code></h3>
+ <pre><code>// lib/services/dataset_service.dart
+ import 'dart:convert';
+ import 'package:flutter/services.dart';
+ import '../models/lesson.dart';
+
+ class DatasetService {
+   // Load a JSON array of lessons from assets
+   Future<List<Lesson>> loadLessonsFromAssets(String assetPath) async {
+     final raw = await rootBundle.loadString(assetPath);
+     final data = json.decode(raw) as List<dynamic>;
+     return data.map((e) => Lesson.fromJson(e as Map<String, dynamic>)).toList();
+   }
+
+   // Minimal CSV parser example (adapt to your CSV structure)
+   Future<List<Lesson>> parseCsv(String csv) async {
+     final lines = csv.split('\n');
+     final lessons = <Lesson>[];
+     for (var i = 1; i < lines.length; i++) {
+       final cols = lines[i].split(',');
+       if (cols.length < 3) continue; // skip malformed rows
+       lessons.add(Lesson(
+         id: cols[0].trim(),
+         title: cols[1].trim(),
+         phrases: cols[2].split('|').map((s) => s.trim()).toList(),
+         order: i,
+       ));
+     }
+     return lessons;
+   }
+ }
+ </code></pre>
+ <h3>4.4.3 Local persistence: <code>lib/services/hive_services.dart</code></h3>
+ <pre><code>// lib/services/hive_services.dart
+ import 'package:hive/hive.dart';
+ import '../models/lesson.dart';
+
+ class HiveServices {
+   static const lessonsBox = 'lessons_box';
+
+   // Save lessons as JSON maps for portability
+   Future<void> saveLessons(List<Lesson> lessons) async {
+     final box = await Hive.openBox(lessonsBox);
+     for (final lesson in lessons) {
+       await box.put(lesson.id, lesson.toJson());
+     }
+     await box.close();
+   }
+
+   Future<List<Lesson>> getLessons() async {
+     final box = await Hive.openBox(lessonsBox);
+     final out = <Lesson>[];
+     for (final key in box.keys) {
+       final json = Map<String, dynamic>.from(box.get(key));
+       out.add(Lesson.fromJson(json));
+     }
+     await box.close();
+     return out;
+   }
+ }
+ </code></pre>
+ <h3>4.4.4 Provider: <code>lib/providers/lesson_provider.dart</code></h3>
+ <pre><code>// lib/providers/lesson_provider.dart
+ import 'package:flutter/foundation.dart';
+ import '../models/lesson.dart';
+ import '../services/dataset_service.dart';
+ import '../services/hive_services.dart';
+
+ class LessonProvider extends ChangeNotifier {
+   final DatasetService datasetService;
+   final HiveServices hiveServices;
+
+   List<Lesson> _lessons = [];
+   bool _loading = false;
+
+   LessonProvider({required this.datasetService, required this.hiveServices});
+
+   List<Lesson> get lessons => _lessons;
+   bool get loading => _loading;
+
+   // Load lessons from cache first, then fallback to assets
+   Future<void> loadLessons() async {
+     _loading = true;
+     notifyListeners();
+
+     final cached = await hiveServices.getLessons();
+     if (cached.isNotEmpty) {
+       _lessons = cached;
+     } else {
+       _lessons = await datasetService.loadLessonsFromAssets('assets/multilingual_dataset.json');
+       await hiveServices.saveLessons(_lessons);
+     }
+
+     _loading = false;
+     notifyListeners();
+   }
+
+   Lesson? lessonById(String id) => _lessons.firstWhere((l) => l.id == id, orElse: () => null);
+ }
+ </code></pre>
+ <h3>4.4.5 UI: <code>lib/screens/lesson_screen.dart</code></h3>
+ <pre><code>// lib/screens/lesson_screen.dart
+ import 'package:flutter/material.dart';
+ import 'package:provider/provider.dart';
+ import '../providers/lesson_provider.dart';
+
+ class LessonScreen extends StatelessWidget {
+   const LessonScreen({super.key});
+
+   @override
+   Widget build(BuildContext context) {
+     final provider = context.watch<LessonProvider>();
+
+     if (provider.loading) {
+       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+     }
+
+     final lessons = provider.lessons;
+     return Scaffold(
+       appBar: AppBar(title: const Text('Lessons')),
+       body: ListView.builder(
+         itemCount: lessons.length,
+         itemBuilder: (context, i) {
+           final l = lessons[i];
+           return ListTile(
+             title: Text(l.title),
+             subtitle: Text('${l.phrases.length} phrases'),
+             onTap: () {
+               // TODO: navigate to detail / practice screen
+             },
+           );
+         },
+       ),
+     );
+   }
+ }
+ </code></pre>
+ <h2>4.5 Integration and project updates</h2>
+ <p>Add these packages to <code>pubspec.yaml</code> dependencies: <code>provider</code>, <code>hive</code>, <code>hive_flutter</code>, <code>json_annotation</code> and dev_dependencies: <code>build_runner</code>, <code>json_serializable</code>.</p>
+ <p>Declare asset files in <code>pubspec.yaml</code> (example):</p>
+ <pre><code>assets:
+   - assets/multilingual_dataset.json
+   - assets/level_0_fidel.csv
+ </code></pre>
+ <p>Initialize Hive in <code>lib/main.dart</code> before <code>runApp()</code>:</p>
+ <pre><code>void main() async {
+   WidgetsFlutterBinding.ensureInitialized();
+   await Hive.initFlutter();
+   runApp(const MyApp());
+ }
+ </code></pre>
+ <h2>4.6 Build and run</h2>
+ <pre><code>flutter pub get
+ flutter pub run build_runner build --delete-conflicting-outputs
+ flutter run
+ </code></pre>
+ <h2>4.7 Notes and recommendations</h2>
+ <ul>
+ <li>Keep the separation: models ⇢ services ⇢ providers ⇢ UI. That keeps unit testing and maintenance easy.</li>
+ <li>If your CSVs are large or parsing is heavy, parse them in background isolates.</li>
+ <li>For more complex persistence use typed Hive adapters instead of JSON maps.</li>
+ </ul>
+ <h2>4.8 Deliverables created</h2>
+ <ul>
+ <li><code>CHAPTER_4_IMPLEMENTATION.md</code> (Markdown)</li>
+ <li><code>CHAPTER_4_IMPLEMENTATION.html</code> (HTML for opening in Word)</li>
+ </ul>
+ <p>Open the HTML file in Microsoft Word and save as a `.docx` if you need a native Word document.</p>
+ </body>
+ </html>
