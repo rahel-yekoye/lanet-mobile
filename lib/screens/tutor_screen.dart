@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/lanet_api_service.dart';
 import '../widgets/pattern_background.dart';
+import '../services/onboarding_service.dart';
 
 class TutorScreen extends StatefulWidget {
   const TutorScreen({super.key});
@@ -14,6 +15,20 @@ class _TutorScreenState extends State<TutorScreen> {
   final List<Map<String, String>> _messages =
       []; // 'role': 'user' or 'bot', 'content': text
   bool _isLoading = false;
+  String? _userLanguage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLanguage();
+  }
+
+  Future<void> _loadUserLanguage() async {
+    final language = await OnboardingService.getValue(OnboardingService.keyLanguage);
+    setState(() {
+      _userLanguage = language;
+    });
+  }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
@@ -39,9 +54,13 @@ class _TutorScreenState extends State<TutorScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Amharic Tutor'),
+          title: Text('${_userLanguage ?? 'Language'} Tutor'),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
         body: Column(
           children: [
@@ -93,7 +112,7 @@ class _TutorScreenState extends State<TutorScreen> {
                     child: TextField(
                       controller: _controller,
                       decoration: InputDecoration(
-                        hintText: 'Ask in Amharic or English...',
+                        hintText: 'Ask in ${_userLanguage ?? 'your language'} or English...',
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(

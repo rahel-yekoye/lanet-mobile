@@ -1,23 +1,49 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isAuthenticated = false;
+  bool _isLoading = true;
+
   String? _authToken;
   Map<String, dynamic>? _userData;
 
+  // --------------------
+  // Getters
+  // --------------------
+
   bool get isAuthenticated => _isAuthenticated;
+  bool get isLoading => _isLoading;
+
   String? get authToken => _authToken;
   String? get userId => _userData?['id'];
   Map<String, dynamic>? get userData => _userData;
+
+  /// ✅ single source of truth for onboarding
+  bool get onboardingCompleted {
+    if (_userData == null) return false;
+
+    // Accept backend variations: snake_case or camelCase
+    final snake = _userData?['onboarding_completed'];
+    final camel = _userData?['onboardingCompleted'];
+    final alt = _userData?['onboardingComplete'];
+
+    return (snake == true) || (camel == true) || (alt == true);
+  }
 
   AuthProvider() {
     checkAuthStatus();
   }
 
+  // --------------------
+  // Initial auth check
+  // --------------------
+
   Future<void> checkAuthStatus() async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
       final token = await AuthService.getToken();
       final userData = await AuthService.getUserData();
@@ -33,12 +59,18 @@ class AuthProvider with ChangeNotifier {
       debugPrint('Error checking auth status: $e');
       await _clearAuthState();
     }
+
+    _isLoading = false;
     notifyListeners();
   }
 
+  // --------------------
+  // Login
+  // --------------------
+
   Future<bool> login(String email, String password) async {
     try {
-      final user = await AuthService.login(email, password);
+      await AuthService.login(email, password);
       await _updateAuthState();
       return _isAuthenticated;
     } catch (e) {
@@ -47,22 +79,20 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // --------------------
+  // Register
+  // --------------------
+
   Future<bool> register({
     required String name,
     required String email,
     required String password,
-    String? language,
-    String? level,
-    String? reason,
   }) async {
     try {
       await AuthService.register(
         name: name,
         email: email,
         password: password,
-        language: language,
-        level: level,
-        reason: reason,
       );
       await _updateAuthState();
       return _isAuthenticated;
@@ -71,6 +101,10 @@ class AuthProvider with ChangeNotifier {
       rethrow;
     }
   }
+
+  // --------------------
+  // Logout
+  // --------------------
 
   Future<void> logout() async {
     try {
@@ -82,7 +116,14 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // --------------------
+  // Update auth state
+  // --------------------
+
   Future<void> _updateAuthState() async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
       final token = await AuthService.getToken();
       final userData = await AuthService.getUserData();
@@ -98,8 +139,14 @@ class AuthProvider with ChangeNotifier {
       debugPrint('Error updating auth state: $e');
       await _clearAuthState();
     }
+
+    _isLoading = false;
     notifyListeners();
   }
+
+  // --------------------
+  // Clear state
+  // --------------------
 
   Future<void> _clearAuthState() async {
     _authToken = null;
@@ -108,13 +155,44 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Add this method to update user profile
-  Future<bool> updateProfile({
+  // --------------------
+  // ✅ Onboarding completion
+  // --------------------
+  // NOTE: Only uses fields AuthService already supports
+
+  Future<void> markOnboardingCompleted({
+    required String language,
+    required String level,
+    required String reason,
+    required int dailyGoal,
+  }) async {
+    try {
+      await AuthService.updateProfile(
+        language: language,
+        level: level,
+        reason: reason,
+        dailyGoal: dailyGoal,
+        onboardingCompleted: true,
+      );
+
+      await _updateAuthState();
+    } catch (e) {
+      debugPrint('Onboarding completion error: $e');
+      rethrow;
+    }
+  }
+
+  // --------------------
+  // Profile updates (non-onboarding)
+  // --------------------
+
+  Future<void> updateProfile({
     String? name,
     String? language,
     String? level,
     String? reason,
     int? dailyGoal,
+    bool? onboardingCompleted,
   }) async {
     try {
       await AuthService.updateProfile(
@@ -123,9 +201,9 @@ class AuthProvider with ChangeNotifier {
         level: level,
         reason: reason,
         dailyGoal: dailyGoal,
+        onboardingCompleted: onboardingCompleted,
       );
       await _updateAuthState();
-      return _isAuthenticated;
     } catch (e) {
       debugPrint('Update profile error: $e');
       rethrow;

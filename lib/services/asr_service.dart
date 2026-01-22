@@ -105,7 +105,7 @@ class ASRService {
   /// Internal method to handle Gradio 4/5 interaction
   Future<String?> _transcribeWithGradio(Uint8List audioBytes,
       {String? mimeType, String? languageCode}) async {
-    final isWeb = kIsWeb;
+    const isWeb = kIsWeb;
     var finalMimeType = mimeType;
 
     // Fallback if mimeType is missing or generic
@@ -116,9 +116,9 @@ class ASRService {
     print('ASR: Using mimeType: $finalMimeType, Language: $languageCode');
 
     String extension = 'wav';
-    if (finalMimeType!.contains('webm'))
+    if (finalMimeType.contains('webm')) {
       extension = 'webm';
-    else if (finalMimeType.contains('mp4'))
+    } else if (finalMimeType.contains('mp4'))
       extension = 'mp4';
     else if (finalMimeType.contains('aac'))
       extension = 'm4a';

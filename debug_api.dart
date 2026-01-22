@@ -8,7 +8,7 @@ void main() async {
 
 Future<void> testQueue(String question) async {
   final sessionHash = "debug_${DateTime.now().millisecondsSinceEpoch}";
-  final joinUrl = "https://thiobista-lanet-amharic-tutor.hf.space/queue/join";
+  const joinUrl = "https://thiobista-lanet-amharic-tutor.hf.space/queue/join";
   final dataUrl = "https://thiobista-lanet-amharic-tutor.hf.space/queue/data?session_hash=$sessionHash";
 
   print("Joining queue with hash: $sessionHash");

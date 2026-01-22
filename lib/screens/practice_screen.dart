@@ -410,6 +410,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
       return Scaffold(
         appBar: AppBar(
             title: Text('Practice: ${widget.category}'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
             actions: _progressChips()),
         body: const Center(child: Text('No questions (or finished).')),
       );
@@ -418,6 +422,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Practice: ${widget.category}'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
           // Exercise type indicator
           Padding(

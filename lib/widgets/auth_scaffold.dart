@@ -9,12 +9,12 @@ class AuthScaffold extends StatelessWidget {
   final Widget? bottomImage;
 
   const AuthScaffold({
-    Key? key,
+    super.key,
     required this.title,
     required this.child,
     this.heroTag,
     this.bottomImage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

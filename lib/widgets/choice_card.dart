@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 class ChoiceCard extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
+  final Color? backgroundColor;
 
   const ChoiceCard({
     super.key,
     required this.label,
     required this.onTap,
+    this.backgroundColor,
   });
 
   @override
@@ -30,27 +32,27 @@ class _ChoiceCardState extends State<ChoiceCard>
         scale: scale,
         duration: const Duration(milliseconds: 120),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(14),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
             child: Container(
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
+                color: widget.backgroundColor ?? Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   )
                 ],
               ),
               child: Text(
                 widget.label,
                 style: const TextStyle(
-                  fontSize: 19,
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF333333),
                 ),

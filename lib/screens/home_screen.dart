@@ -1,17 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lanet_mobile/screens/alphabet/alphabet_overview_screen.dart';
 import 'package:lanet_mobile/screens/tutor_screen.dart';
 import 'package:lanet_mobile/widgets/pattern_background.dart';
 import 'package:provider/provider.dart';
+import '../services/session_manager.dart';
 
 import '../providers/lesson_provider.dart';
 import 'category_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // No need for session checking delay - load immediately
+  }
+  
+  @override
   Widget build(BuildContext context) {
+    
     final lp = Provider.of<LessonProvider>(context);
 
     if (lp.loading) {
@@ -28,6 +42,16 @@ class HomeScreen extends StatelessWidget {
           title: const Text('Lanet — Learn Languages'),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.bar_chart),
+              onPressed: () {
+                GoRouter.of(context).go('/progress');
+              },
+
+              tooltip: 'View Progress',
+            ),
+          ],
         ),
         body: ListView(
           padding: const EdgeInsets.all(16),
@@ -49,7 +73,14 @@ class HomeScreen extends StatelessWidget {
                 title: Text(cat),
                 subtitle: Text('$count phrases'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
+                onTap: () async {
+                  // Save session before navigating
+                  final sessionManager = SessionManager();
+                  await sessionManager.saveSession(
+                    currentCategory: cat,
+                    currentScreen: 'category_selection',
+                  );
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -58,7 +89,7 @@ class HomeScreen extends StatelessWidget {
                   );
                 },
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -110,10 +141,10 @@ class _TutorEntryCard extends StatelessWidget {
             const SizedBox(width: 16),
 
             /// Text
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'AI Amharic Tutor',
                     style: TextStyle(

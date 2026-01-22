@@ -6,7 +6,7 @@ void main() {
   testWidgets('App should build and show initial screen',
       (WidgetTester tester) async {
     // Build the app without const since MyApp isn't a const widget
-    await tester.pumpWidget(MyApp());
+    await tester.pumpWidget(const MyApp());
 
     // Verify the app starts up correctly
     expect(find.byType(MyApp), findsOneWidget);

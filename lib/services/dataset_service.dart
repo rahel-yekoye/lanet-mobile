@@ -5,7 +5,7 @@ import '../models/phrase.dart';
 
 class DatasetService {
   /// -------------------------------
-  /// JSON PHRASES (unchanged)
+  /// JSON PHRASES (with language filtering)
   /// -------------------------------
   Future<List<Phrase>> loadAllPhrases(String assetPath) async {
     final raw = await rootBundle.loadString(assetPath);
@@ -48,6 +48,41 @@ class DatasetService {
       }
     });
     return out;
+  }
+
+  /// Filter phrases by user's selected language
+  List<Phrase> filterByLanguage(List<Phrase> phrases, String selectedLanguage) {
+    return phrases.where((phrase) {
+      switch(selectedLanguage.toLowerCase()) {
+        case 'amharic':
+          return phrase.amharic.isNotEmpty;
+        case 'tigrinya':
+        case 'tigrigna': // Handle both spellings
+          return phrase.tigrinya.isNotEmpty;
+        case 'oromo':
+        case 'oromigna':
+          return phrase.oromo.isNotEmpty;
+        default:
+          return false;
+      }
+    }).toList();
+  }
+
+  /// Filter categories by user's selected language
+  Map<String, List<Phrase>> filterCategoriesByLanguage(
+    Map<String, List<Phrase>> categories,
+    String selectedLanguage,
+  ) {
+    final filteredCategories = <String, List<Phrase>>{};
+    
+    categories.forEach((category, phrases) {
+      final filteredPhrases = filterByLanguage(phrases, selectedLanguage);
+      if (filteredPhrases.isNotEmpty) {
+        filteredCategories[category] = filteredPhrases;
+      }
+    });
+    
+    return filteredCategories;
   }
 
   /// -------------------------------

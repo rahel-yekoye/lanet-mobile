@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/phrase.dart';
 import '../widgets/speech_practice.dart';
+import '../services/onboarding_service.dart';
 
 class LessonScreen extends StatefulWidget {
   final Phrase phrase;
@@ -12,13 +13,39 @@ class LessonScreen extends StatefulWidget {
 
 class _LessonScreenState extends State<LessonScreen> {
   String? _selectedLanguage;
+  String? _userLanguage;
   bool _showSpeechPractice = false;
 
   @override
   void initState() {
     super.initState();
-    // Default to first language
-    _selectedLanguage = 'amharic';
+    _loadUserLanguage();
+  }
+
+  Future<void> _loadUserLanguage() async {
+    final language = await OnboardingService.getValue(OnboardingService.keyLanguage);
+    setState(() {
+      _userLanguage = language?.toLowerCase();
+      // Set the selected language to the user's language
+      if (language != null) {
+        _selectedLanguage = _convertToInternalLanguage(language.toLowerCase());
+      }
+    });
+  }
+
+  String _convertToInternalLanguage(String userLang) {
+    switch(userLang) {
+      case 'amharic':
+        return 'amharic';
+      case 'tigrinya':
+      case 'tigrigna':
+        return 'tigrinya';
+      case 'oromo':
+      case 'oromigna':
+        return 'oromo';
+      default:
+        return 'amharic';
+    }
   }
 
   String _getTargetText() {
@@ -72,6 +99,10 @@ class _LessonScreenState extends State<LessonScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Phrase'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -83,27 +114,25 @@ class _LessonScreenState extends State<LessonScreen> {
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            _rowLabel('Amharic', widget.phrase.amharic),
-            _rowLabel('Oromo', widget.phrase.oromo),
-            _rowLabel('Tigrinya', widget.phrase.tigrinya),
+            if (_userLanguage != null && _userLanguage!.toLowerCase() == 'amharic')
+              _rowLabel('Amharic', widget.phrase.amharic),
+            if (_userLanguage != null && _userLanguage!.toLowerCase() == 'oromo')
+              _rowLabel('Oromo', widget.phrase.oromo),
+            if (_userLanguage != null && (_userLanguage!.toLowerCase() == 'tigrinya' || _userLanguage!.toLowerCase() == 'tigrigna'))
+              _rowLabel('Tigrinya', widget.phrase.tigrinya),
             const SizedBox(height: 30),
             
-            // Language selector for speech practice
-            const Text(
-              'Practice pronunciation in:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _languageChip('Amharic', 'amharic'),
-                const SizedBox(width: 8),
-                _languageChip('Oromo', 'oromo'),
-                const SizedBox(width: 8),
-                _languageChip('Tigrinya', 'tigrinya'),
-              ],
-            ),
+            // Only show language selector for speech practice if user has selected a language
+            if (_userLanguage != null)
+              Column(
+                children: [
+                  Text(
+                    'Practice pronunciation in $_userLanguage:',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
             
             const Spacer(),
             ElevatedButton.icon(
@@ -130,20 +159,7 @@ class _LessonScreenState extends State<LessonScreen> {
     );
   }
 
-  Widget _languageChip(String label, String value) {
-    final isSelected = _selectedLanguage == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _selectedLanguage = value;
-        });
-      },
-      selectedColor: Colors.teal.shade300,
-      checkmarkColor: Colors.white,
-    );
-  }
+
 
   Widget _rowLabel(String lang, String text) {
     return Column(

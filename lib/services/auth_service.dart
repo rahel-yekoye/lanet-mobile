@@ -210,6 +210,7 @@ class AuthService {
     String? level,
     String? reason,
     int? dailyGoal,
+    bool? onboardingCompleted,
   }) async {
     try {
       final response = await http.put(
@@ -221,6 +222,7 @@ class AuthService {
           if (level != null) 'level': level,
           if (reason != null) 'reason': reason,
           if (dailyGoal != null) 'dailyGoal': dailyGoal,
+          if (onboardingCompleted != null) 'onboarding_completed': onboardingCompleted,
         }),
       );
 

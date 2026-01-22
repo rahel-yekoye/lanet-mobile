@@ -35,7 +35,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
   final AudioPlayer _player = AudioPlayer();
   jaudio.AudioPlayer? _jaPlayer;
   final ConfettiController _confetti =
-      ConfettiController(duration: Duration(milliseconds: 900));
+      ConfettiController(duration: const Duration(milliseconds: 900));
 
   bool _isRecording = false;
   bool _isProcessing = false;
@@ -239,10 +239,10 @@ class _SpeechPracticeState extends State<SpeechPractice>
         // Show detailed error in a dialog or cleaner snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 8),
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 8),
                 Expanded(
                     child: Text('Transcription failed. Please try again.')),
               ],
@@ -519,9 +519,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
                                   try {
                                     if (kIsWeb) {
                                       // Use just_audio on web (handles blob: URLs reliably)
-                                      if (_jaPlayer == null) {
-                                        _jaPlayer = jaudio.AudioPlayer();
-                                      }
+                                      _jaPlayer ??= jaudio.AudioPlayer();
                                       await _jaPlayer!.setUrl(_audioPath!);
                                       await _jaPlayer!.setSpeed(_playbackRate);
                                       await _jaPlayer!.play();

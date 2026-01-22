@@ -4,6 +4,7 @@ import '../providers/lesson_provider.dart';
 import 'lesson_screen.dart';
 import 'practice_screen.dart';
 import '../widgets/phrase_card.dart';
+import '../services/onboarding_service.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -14,57 +15,20 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
-  // Default selected languages
-  List<String> selectedLanguages = ["Amharic", "Oromo", "Tigrinya"];
+  String? userLanguage;
 
-  // Opens dialog to select visible languages
-void _chooseLanguages() async {
-  final languages = ["Amharic", "Oromo", "Tigrinya"];
-  List<String> tempSelected = List.from(selectedLanguages);
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLanguage();
+  }
 
-  final result = await showDialog<List<String>>(
-    context: context,
-    builder: (ctx) {
-      return StatefulBuilder(
-        builder: (ctx, setStateDialog) {
-          return AlertDialog(
-            title: const Text("Select languages"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: languages.map((lang) {
-                return CheckboxListTile(
-                  value: tempSelected.contains(lang),
-                  title: Text(lang),
-                  onChanged: (val) {
-                    setStateDialog(() {
-                      if (val == true) {
-                        tempSelected.add(lang);
-                      } else {
-                        tempSelected.remove(lang);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, tempSelected),
-                child: const Text("OK"),
-              )
-            ],
-          );
-        },
-      );
-    },
-  );
-
-  if (result != null) {
+  Future<void> _loadUserLanguage() async {
+    final language = await OnboardingService.getValue(OnboardingService.keyLanguage);
     setState(() {
-      selectedLanguages = result;
+      userLanguage = language;
     });
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -74,13 +38,24 @@ void _chooseLanguages() async {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.category),
-        actions: [
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: userLanguage != null ? [
           IconButton(
-            icon: const Icon(Icons.language),
-            tooltip: "Choose languages",
-            onPressed: _chooseLanguages,
+            icon: const Icon(Icons.info_outline),
+            tooltip: "Displaying content in ${userLanguage!}",
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Currently displaying content in ${userLanguage!}"),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
           )
-        ],
+        ] : [],
       ),
       body: Column(
         children: [
@@ -107,9 +82,10 @@ void _chooseLanguages() async {
               itemCount: phrases.length,
               itemBuilder: (context, i) {
                 final p = phrases[i];
+                final visibleLanguages = userLanguage != null ? [userLanguage!] : ["Amharic", "Oromo", "Tigrinya"];
                 return PhraseCard(
                   phrase: p,
-                  visibleLanguages: selectedLanguages,
+                  visibleLanguages: visibleLanguages,
                   onTap: () {
                     Navigator.push(
                       context,

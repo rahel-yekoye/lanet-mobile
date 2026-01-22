@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../providers/auth_provider.dart';
 import '../../widgets/auth_scaffold.dart';
 
@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -29,27 +30,22 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final authProvider =
+          Provider.of<AuthProvider>(context, listen: false);
+
       final success = await authProvider.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
-      
-      if (success) {
-        final prefs = await SharedPreferences.getInstance();
-        final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboarding') ?? false;
-        
-        if (authProvider.isAuthenticated) {
-          if (hasCompletedOnboarding) {
-            if (mounted) context.go('/home');
-          } else {
-            if (mounted) context.go('/onboarding/language');
-          }
-        }
+
+      if (success && mounted) {
+        // 🚀 Let GoRouter decide where to go next
+        context.go('/splash');
       }
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage =
+            e.toString().replaceAll('Exception: ', '');
       });
     } finally {
       if (mounted) {
@@ -63,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return AuthScaffold(
       title: 'Welcome Back!',
       bottomImage: Image.asset(
-        'assets/images/illustration/theBoy.png', // Updated to use the transparent PNG
+        'assets/images/illustration/theBoy.png',
         height: 300,
         fit: BoxFit.contain,
       ),
@@ -75,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
             // Error message
             if (_errorMessage != null)
               Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
                   _errorMessage!,
                   style: const TextStyle(color: Colors.red),
@@ -83,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-            // Email field
+            // Email
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
@@ -101,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Password field
+            // Password
             TextFormField(
               controller: _passwordController,
               obscureText: true,
@@ -137,7 +133,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   : const Text('LOG IN'),
@@ -147,22 +144,25 @@ class _LoginScreenState extends State<LoginScreen> {
             // Forgot password
             TextButton(
               onPressed: () {
-                // TODO: Implement forgot password
+                // TODO: Forgot password
               },
               child: const Text('Forgot Password?'),
             ),
             const SizedBox(height: 8),
 
-            // Sign up link
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("Don't have an account?"),
-                TextButton(
-                  onPressed: () => context.go('/register'),
-                  child: const Text('Sign Up'),
-                ),
-              ],
+            // Register link — use Wrap to avoid Row overflow on narrow screens
+            Center(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                children: [
+                  const Text("Don't have an account?"),
+                  TextButton(
+                    onPressed: () => context.go('/register'),
+                    child: const Text('Sign Up'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

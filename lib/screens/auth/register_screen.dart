@@ -45,7 +45,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (success && mounted) {
-        context.go('/onboarding/language');
+        // Let the router's redirect logic decide the next screen
+        context.go('/splash');
       }
     } catch (e) {
       setState(() {

@@ -8,6 +8,7 @@ import 'package:lanet_mobile/services/srs_service.dart';
 import 'package:lanet_mobile/widgets/pattern_background.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/onboarding_service.dart';
 
 class AlphabetFamilyScreen extends StatefulWidget {
   final String family;
@@ -25,6 +26,7 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
   int _score = 0;
   int _mode = 0; // 0 = Learn mode, 1 = Quiz mode
   bool _isLoading = true;
+  String? _userLanguage;
 
   FidelModel? _currentTarget;
   List<FidelModel> _quizOptions = [];
@@ -33,7 +35,15 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserLanguage();
     _loadFamilyItems();
+  }
+
+  Future<void> _loadUserLanguage() async {
+    final language = await OnboardingService.getValue(OnboardingService.keyLanguage);
+    setState(() {
+      _userLanguage = language;
+    });
   }
 
   @override
@@ -48,7 +58,7 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: Text('${widget.family.toUpperCase()} Family'),
+          title: Text('${widget.family.toUpperCase()} Family (${_userLanguage ?? 'Language'})'),
           actions: _mode == 0
               ? [
                   IconButton(

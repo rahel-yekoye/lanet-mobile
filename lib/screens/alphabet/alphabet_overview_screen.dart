@@ -5,9 +5,30 @@ import 'package:lanet_mobile/widgets/pattern_background.dart';
 import 'package:provider/provider.dart';
 
 import 'alphabet_family_screen.dart';
+import '../../services/onboarding_service.dart';
 
-class AlphabetOverviewScreen extends StatelessWidget {
+class AlphabetOverviewScreen extends StatefulWidget {
   const AlphabetOverviewScreen({super.key});
+
+  @override
+  State<AlphabetOverviewScreen> createState() => _AlphabetOverviewScreenState();
+}
+
+class _AlphabetOverviewScreenState extends State<AlphabetOverviewScreen> {
+  String? _userLanguage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLanguage();
+  }
+
+  Future<void> _loadUserLanguage() async {
+    final language = await OnboardingService.getValue(OnboardingService.keyLanguage);
+    setState(() {
+      _userLanguage = language;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,9 +39,13 @@ class AlphabetOverviewScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Amharic Alphabet'),
+          title: Text('${_userLanguage ?? 'Ethiopian'} Alphabet'),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
         body: GridView.builder(
           padding: const EdgeInsets.all(16),

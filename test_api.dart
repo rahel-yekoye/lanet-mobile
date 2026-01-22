@@ -7,7 +7,7 @@ void main() async {
 
 Future<void> testQueue() async {
   final sessionHash = "test_sess_${DateTime.now().millisecondsSinceEpoch}";
-  final joinUrl = "https://thiobista-lanet-amharic-tutor.hf.space/queue/join";
+  const joinUrl = "https://thiobista-lanet-amharic-tutor.hf.space/queue/join";
   final dataUrl =
       "https://thiobista-lanet-amharic-tutor.hf.space/queue/data?session_hash=$sessionHash";
 
