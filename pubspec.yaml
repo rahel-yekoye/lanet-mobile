@@ -52,6 +52,7 @@ dependencies:
   jwt_decoder: ^2.0.1
   postgres: ^3.0.3
   path: ^1.9.0
+  supabase_flutter: ^2.5.0
 
 
 dev_dependencies:
@@ -70,6 +71,4 @@ flutter:
     - assets/data/level_0_fidel.csv
     - assets/images/patterns/page_border.png
     - assets/images/illustration/theboy.png
-    - assets/icons/
-    - assets/audio/
-    - assets/images/illustration/
+    

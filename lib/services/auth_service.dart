@@ -1,23 +1,15 @@
 // lib/services/auth_service.dart
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/user_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../models/user_model.dart' as app_model;
+import 'supabase_service.dart';
 
 class AuthService {
-  static const String _baseUrl = 'http://localhost:3000/api';
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
-
-  // Helper method to get headers with auth token
-  static Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await getToken();
-    return {
-      'Content-Type': 'application/json; charset=UTF-8',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
+  static SupabaseClient get _client => Supabase.instance.client;
 
   // Store authentication data
   static Future<void> _saveAuthData(
@@ -47,57 +39,25 @@ class AuthService {
 
   // Check if user is authenticated
   static Future<bool> isAuthenticated() async {
-    final token = await getToken();
-    if (token == null) return false;
-
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/auth/verify'),
-        headers: await _getAuthHeaders(),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      developer.log('Auth verification error: $e');
-      return false;
-    }
+    final session = _client.auth.currentSession;
+    return session != null;
   }
 
   // Login user
-  static Future<User> login(String email, String password) async {
+  static Future<app_model.User> login(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({
-          'email': email,
-          'password': password, // Send plain password (will be hashed by backend)
-        }),
-      );
-
-      final responseData = _handleResponse(response);
-      final userData = responseData['user'];
+      final user = await SupabaseService.signIn(email, password);
+      if (user == null) {
+        throw Exception('Invalid credentials');
+      }
       
-      // Filter the API response to match the User model expectations
-      // Extract onboarding preferences separately to avoid conflicts
-      final filteredUserData = {
-        'id': userData['id'],
-        'name': userData['name'],
-        'xp': userData['xp'] ?? 0,
-        'level': (userData['level'] is int) ? userData['level'] : 1, // Ensure it's an int, default to 1
-        'streak': userData['streak'] ?? 0,
-        'lastActiveDate': userData['created_at'],
-        'dailyGoal': (userData['daily_goal'] is int) ? userData['daily_goal'] : ((userData['dailyGoal'] is int) ? userData['dailyGoal'] : 100),
-        'dailyXpEarned': userData['dailyXpEarned'] ?? 0,
-        'settings': userData['settings'] ?? {},
-      };
-
-      // Save auth data
-      await _saveAuthData(
-        responseData['token'],
-        userData, // Store the original user data with all fields
-      );
-
-      return User.fromJson(filteredUserData);
+      // Fetch user data from database
+      final userData = await _fetchUserProfile(user.id);
+      
+      // Save auth data locally
+      await _saveAuthData('', userData);
+      
+      return app_model.User.fromJson(userData);
     } catch (e) {
       developer.log('Login error: $e');
       rethrow;
@@ -105,7 +65,7 @@ class AuthService {
   }
 
   // Register a new user
-  static Future<User> register({
+  static Future<app_model.User> register({
     required String name,
     required String email,
     required String password,
@@ -115,44 +75,59 @@ class AuthService {
     int? dailyGoal,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({
-          'name': name,
-          'email': email,
-          'password': password, // Send plain password (will be hashed by backend)
-          if (language != null) 'language': language,
-          if (level != null) 'level': level,
-          if (reason != null) 'reason': reason,
-          if (dailyGoal != null) 'dailyGoal': dailyGoal,
-        }),
-      );
-
-      final responseData = _handleResponse(response);
-      final userData = responseData['user'];
+      final user = await SupabaseService.signUp(email, password, name: name);
+      if (user == null) {
+        throw Exception('Registration failed');
+      }
       
-      // Filter the API response to match the User model expectations
-      // Extract onboarding preferences separately to avoid conflicts
-      final filteredUserData = {
-        'id': userData['id'],
-        'name': userData['name'],
-        'xp': userData['xp'] ?? 0,
-        'level': (userData['level'] is int) ? userData['level'] : 1, // Ensure it's an int, default to 1
-        'streak': userData['streak'] ?? 0,
-        'lastActiveDate': userData['created_at'],
-        'dailyGoal': (userData['daily_goal'] is int) ? userData['daily_goal'] : ((userData['dailyGoal'] is int) ? userData['dailyGoal'] : 100),
-        'dailyXpEarned': userData['dailyXpEarned'] ?? 0,
-        'settings': userData['settings'] ?? {},
+      // Create initial user profile - NEW USERS should go through onboarding
+      final userData = {
+        'id': user.id,
+        'name': name,
+        'email': email,
+        'xp': 0,
+        'level': 1,
+        'streak': 0,
+        'lastActiveDate': DateTime.now().toIso8601String(),
+        'dailyGoal': 100, // Default value
+        'dailyXpEarned': 0,
+        'settings': {},
+        // Don't set onboarding fields yet - let user complete onboarding flow
+        // 'language': language,
+        // 'level': level,  
+        // 'reason': reason,
+        // 'dailyGoal': dailyGoal,
+        // 'onboarding_completed': false,
       };
-
-      // Save auth data
-      await _saveAuthData(
-        responseData['token'],
-        userData, // Store the original user data with all fields
-      );
-
-      return User.fromJson(filteredUserData);
+      
+      // Save to users table with minimal data (forces onboarding)
+      await _client.from('users').upsert({
+        'id': user.id,
+        'name': name,
+        'email': email,
+        'xp': 0,
+        'level': 1,
+        'streak': 0,
+        'lastActiveDate': DateTime.now().toIso8601String(),
+        'dailyGoal': 100,
+        'dailyXpEarned': 0,
+        'settings': '{}',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      
+      // Also save to profiles table
+      await _client.from('profiles').upsert({
+        'id': user.id,
+        'full_name': name,
+        'email': email,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      
+      // Save auth data locally
+      await _saveAuthData('', userData);
+      
+      return app_model.User.fromJson(userData);
     } catch (e) {
       developer.log('Registration error: $e');
       rethrow;
@@ -174,29 +149,15 @@ class AuthService {
   }
 
   // Get current user profile
-  static Future<User> getCurrentUser() async {
+  static Future<app_model.User> getCurrentUser() async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/auth/me'),
-        headers: await _getAuthHeaders(),
-      );
-
-      final responseData = _handleResponse(response);
+      final user = _client.auth.currentUser;
+      if (user == null) {
+        throw Exception('No authenticated user');
+      }
       
-      // Filter the API response to match the User model expectations
-      final filteredUserData = {
-        'id': responseData['id'],
-        'name': responseData['name'],
-        'xp': responseData['xp'] ?? 0,
-        'level': responseData['level'] is int ? responseData['level'] : 1, // Ensure it's an int, default to 1
-        'streak': responseData['streak'] ?? 0,
-        'lastActiveDate': responseData['created_at'],
-        'dailyGoal': (responseData['daily_goal'] is int) ? responseData['daily_goal'] : ((responseData['dailyGoal'] is int) ? responseData['dailyGoal'] : 100),
-        'dailyXpEarned': responseData['dailyXpEarned'] ?? 0,
-        'settings': responseData['settings'] ?? {},
-      };
-      
-      return User.fromJson(filteredUserData);
+      final userData = await _fetchUserProfile(user.id);
+      return app_model.User.fromJson(userData);
     } catch (e) {
       developer.log('Get current user error: $e');
       rethrow;
@@ -204,7 +165,7 @@ class AuthService {
   }
 
   // Update user profile
-  static Future<User> updateProfile({
+  static Future<app_model.User> updateProfile({
     String? name,
     String? language,
     String? level,
@@ -213,55 +174,94 @@ class AuthService {
     bool? onboardingCompleted,
   }) async {
     try {
-      final response = await http.put(
-        Uri.parse('$_baseUrl/users/profile'),
-        headers: await _getAuthHeaders(),
-        body: jsonEncode({
-          if (name != null) 'name': name,
-          if (language != null) 'language': language,
-          if (level != null) 'level': level,
-          if (reason != null) 'reason': reason,
-          if (dailyGoal != null) 'dailyGoal': dailyGoal,
-          if (onboardingCompleted != null) 'onboarding_completed': onboardingCompleted,
-        }),
-      );
-
-      final responseData = _handleResponse(response);
+      final user = _client.auth.currentUser;
+      if (user == null) {
+        throw Exception('No authenticated user');
+      }
       
-      // Filter the API response to match the User model expectations
-      // Extract onboarding preferences separately to avoid conflicts
-      final filteredUserData = {
-        'id': responseData['id'],
-        'name': responseData['name'],
-        'xp': responseData['xp'] ?? 0,
-        'level': responseData['level'] is int ? responseData['level'] : 1, // Ensure it's an int, default to 1
-        'streak': responseData['streak'] ?? 0,
-        'lastActiveDate': responseData['created_at'],
-        'dailyGoal': (responseData['daily_goal'] is int) ? responseData['daily_goal'] : ((responseData['dailyGoal'] is int) ? responseData['dailyGoal'] : 100),
-        'dailyXpEarned': responseData['dailyXpEarned'] ?? 0,
-        'settings': responseData['settings'] ?? {},
-      };
+      // Update profiles table
+      final updates = <String, dynamic>{};
+      if (name != null) updates['full_name'] = name;
       
-      await _saveAuthData(
-        await getToken() ?? '',
-        responseData,
-      );
-
-      return User.fromJson(filteredUserData);
+      if (updates.isNotEmpty) {
+        await _client.from('profiles').update(updates).eq('id', user.id);
+      }
+      
+      // Update user data in users table (your app's main data)
+      final userUpdates = <String, dynamic>{};
+      if (name != null) userUpdates['name'] = name;
+      if (language != null) userUpdates['language'] = language;
+      if (level != null) userUpdates['level'] = level;
+      if (reason != null) userUpdates['reason'] = reason;
+      if (dailyGoal != null) userUpdates['dailyGoal'] = dailyGoal;
+      if (onboardingCompleted != null) userUpdates['onboarding_completed'] = onboardingCompleted;
+      
+      if (userUpdates.isNotEmpty) {
+        await _client.from('users').update(userUpdates).eq('id', user.id);
+      }
+      
+      // Fetch updated user data
+      final userData = await _fetchUserProfile(user.id);
+      await _saveAuthData('', userData);
+      
+      return app_model.User.fromJson(userData);
     } catch (e) {
       developer.log('Update profile error: $e');
       rethrow;
     }
   }
 
-  // Helper method to handle API responses
-  static Map<String, dynamic> _handleResponse(http.Response response) {
-    final responseData = jsonDecode(response.body);
-    
-    if (response.statusCode >= 400) {
-      throw Exception(responseData['message'] ?? 'An error occurred');
+  // Helper method to fetch user profile from Supabase
+  static Future<Map<String, dynamic>> _fetchUserProfile(String userId) async {
+    try {
+      // Try to get from users table first
+      final userData = await _client
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+      
+      if (userData != null) {
+        return userData;
+      }
+      
+      // Fallback to profiles table
+      final profileData = await _client
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+      
+      if (profileData != null) {
+        return {
+          'id': profileData['id'],
+          'name': profileData['full_name'] ?? '',
+          'email': profileData['email'] ?? '',
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': profileData['created_at'] ?? DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+      }
+      
+      // Return minimal user data if nothing found
+      return {
+        'id': userId,
+        'name': '',
+        'xp': 0,
+        'level': 1,
+        'streak': 0,
+        'lastActiveDate': DateTime.now().toIso8601String(),
+        'dailyGoal': 100,
+        'dailyXpEarned': 0,
+        'settings': {},
+      };
+    } catch (e) {
+      developer.log('Error fetching user profile: $e');
+      rethrow;
     }
-
-    return responseData;
   }
 }

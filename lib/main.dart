@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'providers/lesson_provider.dart';
 import 'providers/fidel_provider.dart';
@@ -24,7 +25,15 @@ import 'screens/onboarding/daily_goal_screen.dart';
 // Progress screen
 import 'screens/progress_dashboard_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: 'https://dvjwoggpbhxygrhfraut.supabase.co',
+    anonKey: 'sb_publishable_gmm2eBcmqVtPQYgC6ibQJA_zKApKLxv',
+  );
+  
   // Show a readable error widget in the app when a build/layout error occurs
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return Scaffold(
