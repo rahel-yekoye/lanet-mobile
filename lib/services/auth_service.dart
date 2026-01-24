@@ -93,36 +93,11 @@ class AuthService {
         'dailyXpEarned': 0,
         'settings': {},
         // Don't set onboarding fields yet - let user complete onboarding flow
-        // 'language': language,
-        // 'level': level,  
-        // 'reason': reason,
-        // 'dailyGoal': dailyGoal,
-        // 'onboarding_completed': false,
       };
       
-      // Save to users table with minimal data (forces onboarding)
-      await _client.from('users').upsert({
-        'id': user.id,
-        'name': name,
-        'email': email,
-        'xp': 0,
-        'level': 1,
-        'streak': 0,
-        'lastActiveDate': DateTime.now().toIso8601String(),
-        'dailyGoal': 100,
-        'dailyXpEarned': 0,
-        'settings': '{}',
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-      
-      // Also save to profiles table
-      await _client.from('profiles').upsert({
-        'id': user.id,
-        'full_name': name,
-        'email': email,
-        'created_at': DateTime.now().toIso8601String(),
-      });
+      // Note: The database trigger 'on_auth_user_created' automatically creates
+      // rows in 'public.users' and 'public.profiles'. We don't need to manually
+      // insert them here, which avoids 409 Conflict errors and schema mismatch issues.
       
       // Save auth data locally
       await _saveAuthData('', userData);
@@ -179,26 +154,15 @@ class AuthService {
         throw Exception('No authenticated user');
       }
       
-      // Update profiles table
-      final updates = <String, dynamic>{};
-      if (name != null) updates['full_name'] = name;
-      
-      if (updates.isNotEmpty) {
-        await _client.from('profiles').update(updates).eq('id', user.id);
-      }
-      
-      // Update user data in users table (your app's main data)
-      final userUpdates = <String, dynamic>{};
-      if (name != null) userUpdates['name'] = name;
-      if (language != null) userUpdates['language'] = language;
-      if (level != null) userUpdates['level'] = level;
-      if (reason != null) userUpdates['reason'] = reason;
-      if (dailyGoal != null) userUpdates['dailyGoal'] = dailyGoal;
-      if (onboardingCompleted != null) userUpdates['onboarding_completed'] = onboardingCompleted;
-      
-      if (userUpdates.isNotEmpty) {
-        await _client.from('users').update(userUpdates).eq('id', user.id);
-      }
+      // Delegate to SupabaseService for robust updating (handles user_preferences, profiles, and users tables)
+      await SupabaseService.updateUserData(
+        name: name,
+        language: language,
+        level: level,
+        reason: reason,
+        dailyGoal: dailyGoal,
+        onboardingCompleted: onboardingCompleted,
+      );
       
       // Fetch updated user data
       final userData = await _fetchUserProfile(user.id);
@@ -211,57 +175,11 @@ class AuthService {
     }
   }
 
-  // Helper method to fetch user profile from Supabase
+  // Deprecated: Internal helper method replaced by SupabaseService.fetchUserData
+  // Kept for reference but should not be used
   static Future<Map<String, dynamic>> _fetchUserProfile(String userId) async {
-    try {
-      // Try to get from users table first
-      final userData = await _client
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
-      
-      if (userData != null) {
-        return userData;
-      }
-      
-      // Fallback to profiles table
-      final profileData = await _client
-          .from('profiles')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
-      
-      if (profileData != null) {
-        return {
-          'id': profileData['id'],
-          'name': profileData['full_name'] ?? '',
-          'email': profileData['email'] ?? '',
-          'xp': 0,
-          'level': 1,
-          'streak': 0,
-          'lastActiveDate': profileData['created_at'] ?? DateTime.now().toIso8601String(),
-          'dailyGoal': 100,
-          'dailyXpEarned': 0,
-          'settings': {},
-        };
-      }
-      
-      // Return minimal user data if nothing found
-      return {
-        'id': userId,
-        'name': '',
-        'xp': 0,
-        'level': 1,
-        'streak': 0,
-        'lastActiveDate': DateTime.now().toIso8601String(),
-        'dailyGoal': 100,
-        'dailyXpEarned': 0,
-        'settings': {},
-      };
-    } catch (e) {
-      developer.log('Error fetching user profile: $e');
-      rethrow;
-    }
+    // Forward to SupabaseService
+    final data = await SupabaseService.fetchUserData();
+    return data ?? {};
   }
 }

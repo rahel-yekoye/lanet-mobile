@@ -64,8 +64,8 @@ class User extends Equatable {
                 ? json['lastActiveDate'] 
                 : DateTime.now()) 
         : DateTime.now(),
-      dailyGoal: json['dailyGoal'] as int? ?? 100,
-      dailyXpEarned: json['dailyXpEarned'] as int? ?? 0,
+      dailyGoal: json['dailyGoal'] as int? ?? json['daily_goal'] as int? ?? 100,
+      dailyXpEarned: json['dailyXpEarned'] as int? ?? json['daily_xp_earned'] as int? ?? 0,
       settings: (json['settings'] as Map<dynamic, dynamic>?)?.cast<String, dynamic>() ?? {},
     );
   }

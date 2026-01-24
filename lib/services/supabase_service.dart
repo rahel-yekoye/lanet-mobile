@@ -6,28 +6,19 @@ class SupabaseService {
 
   // Helper method to insert user data in background
   static void _insertUserData(User user, String? name, String email) {
-    // Avoid writing to the auth-managed `users` table (it requires password_hash).
-    // Use a separate `profiles` table for app-specific user metadata.
-    // Run in background without awaiting.
-    client.from('profiles').insert({
-      'id': user.id,
-      'full_name': name ?? '',
-      'email': email,
-      'created_at': DateTime.now().toIso8601String(),
-    }).catchError((e) async {
-      developer.log('Background profiles insert error: $e');
-      // Try upsert as fallback into profiles
-      try {
-        await client.from('profiles').upsert({
-          'id': user.id,
-          'full_name': name ?? '',
-          'email': email,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-      } catch (upsertError) {
-        developer.log('Background profiles upsert error: $upsertError');
-      }
-    });
+    // Note: The database trigger 'on_auth_user_created' automatically creates
+    // rows in 'public.users' and 'public.profiles'. We don't need to manually
+    // insert them here, which avoids 409 Conflict errors.
+    
+    // However, if we need to update the automatically created profile with a name
+    // that might not have been in metadata, we can do an update:
+    if (name != null && name.isNotEmpty) {
+      client.from('profiles').update({
+        'full_name': name,
+      }).eq('id', user.id).catchError((e) {
+        developer.log('Background profiles update error: $e');
+      });
+    }
   }
 
   // Sign up a new user
@@ -35,7 +26,7 @@ class SupabaseService {
     try {
       // First, check if user already exists
       final existingSession = client.auth.currentSession;
-      if (existingSession?.user?.email == email) {
+      if (existingSession?.user.email == email) {
         return existingSession?.user;
       }
       
@@ -73,19 +64,9 @@ class SupabaseService {
   // Sign in a user
   // Helper method to ensure user record exists in the users table
   static Future<void> _ensureUserRecord(User user) async {
-    try {
-      // Prefer upserting into `profiles` for app metadata.
-      await client.from('profiles').upsert({
-        'id': user.id,
-        'full_name': user.userMetadata?['full_name'] ?? '',
-        'email': user.email ?? '',
-        'created_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      developer.log('Error ensuring user record in profiles: $e');
-      // As a last-resort, log the error and skip creating a record to avoid
-      // violating constraints on the auth.users table (e.g. password_hash NOT NULL).
-    }
+    // Note: Database trigger handles creation. 
+    // We only update if needed, but for sign-in, we generally don't need to do anything
+    // unless we want to sync metadata.
   }
   
   static Future<User?> signIn(String email, String password) async {
@@ -164,10 +145,72 @@ class SupabaseService {
         }
       }
       
+      // Fetch user preferences and merge them
+      if (response != null) {
+        try {
+          final prefs = await client
+              .from('user_preferences')
+              .select()
+              .eq('user_id', userId)
+              .eq('selected', true);
+          
+          if (prefs is List) {
+            for (final pref in prefs) {
+              final purpose = pref['purpose'] as String?;
+              if (purpose == null) continue;
+              
+              if (purpose.startsWith('language_')) {
+                response['language'] = purpose.substring('language_'.length);
+              } else if (purpose.startsWith('level_')) {
+                response['level'] = purpose.substring('level_'.length);
+              } else if (purpose.startsWith('reason_')) {
+                response['reason'] = purpose.substring('reason_'.length);
+              } else if (purpose.startsWith('daily_goal_')) {
+                final goalStr = purpose.substring('daily_goal_'.length);
+                response['daily_goal'] = int.tryParse(goalStr) ?? 100;
+                response['dailyGoal'] = response['daily_goal']; // Support camelCase
+              }
+            }
+            
+            // If we found essential preferences (language and level), we can infer onboarding is complete
+            // This handles the case where existing users have preferences but onboarding_completed flag might be missing/false
+            if (response['language'] != null && response['level'] != null) {
+               response['onboarding_completed'] = true;
+               response['onboardingCompleted'] = true;
+            }
+          }
+        } catch (e) {
+          developer.log('Error fetching user_preferences: $e');
+        }
+      }
+      
       return response;
     } catch (e) {
       print('Error fetching user data: $e');
       return null;
+    }
+  }
+
+  // Save a single preference tag
+  static Future<void> _savePreferenceTag(String userId, String prefix, String value) async {
+    try {
+      // 1. Delete ANY existing tags for this category (prefix)
+      // This handles both "unselecting" old ones and avoiding 409 conflicts on unique constraints
+      // (Supabase/PostgREST 409 usually means unique constraint violation, so clearing old data helps)
+      await client
+          .from('user_preferences')
+          .delete()
+          .eq('user_id', userId)
+          .like('purpose', '$prefix%');
+          
+      // 2. Insert the new tag
+      await client.from('user_preferences').insert({
+        'user_id': userId,
+        'purpose': '${prefix}_$value',
+        'selected': true,
+      });
+    } catch (e) {
+       developer.log('Error saving preference tag: $e');
     }
   }
 
@@ -185,27 +228,77 @@ class SupabaseService {
 
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
+    // We still update 'users' table columns for backward compatibility and redundancy
     if (language != null) updates['language'] = language;
     if (level != null) updates['level'] = level;
     if (reason != null) updates['reason'] = reason;
-    if (dailyGoal != null) updates['dailyGoal'] = dailyGoal;
+    if (dailyGoal != null) updates['daily_goal'] = dailyGoal;
     if (onboardingCompleted != null) updates['onboarding_completed'] = onboardingCompleted;
 
+    // 1. Save to 'user_preferences' table (CRITICAL for onboarding flow)
+    // We do this first so that even if other updates fail, the user is considered onboarded
     try {
-      await client
-          .from('users')
-          .update(updates)
-          .eq('id', userId);
-      
-      // Also update profiles table if name changed
-      if (name != null) {
+      if (language != null) await _savePreferenceTag(userId, 'language', language);
+      if (level != null) await _savePreferenceTag(userId, 'level', level);
+      if (reason != null) await _savePreferenceTag(userId, 'reason', reason);
+      if (dailyGoal != null) await _savePreferenceTag(userId, 'daily_goal', dailyGoal.toString());
+    } catch (e) {
+      developer.log('Error updating user_preferences: $e');
+      // This is critical, but we continue to try other updates
+    }
+
+    // 2. Update 'profiles' table (Reliable)
+    if (name != null) {
+      try {
         await client
             .from('profiles')
-            .update({'full_name': name})
-            .eq('id', userId);
+            .upsert({
+              'id': userId,
+              'full_name': name,
+              'updated_at': DateTime.now().toIso8601String(),
+            });
+      } catch (e) {
+        developer.log('Error updating profiles: $e');
       }
+    }
+
+    // 3. Update 'users' table (Legacy/Redundant)
+    // This often fails if the row is missing and name is null (not-null constraint),
+    // so we wrap it separately and attempt a fallback.
+    try {
+      var upsertData = {
+        'id': userId,
+        ...updates,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      
+      await client
+          .from('users')
+          .upsert(upsertData);
     } catch (e) {
-      print('Error updating user data: $e');
+      developer.log('Error updating users table: $e');
+      
+      // Attempt recovery for the specific "null value in column name" error
+      if (e.toString().contains('null value') && e.toString().contains('name') && !updates.containsKey('name')) {
+        try {
+          // Try to get name from auth metadata or just use a placeholder if absolutely needed to fix the row
+          var metaName = client.auth.currentUser?.userMetadata?['full_name'];
+          // Fallback if metadata name is also missing (e.g. legacy signup)
+          metaName ??= 'Learner';
+          
+          if (metaName != null) {
+            developer.log('Retrying users update with metadata name: $metaName');
+            await client.from('users').upsert({
+              'id': userId,
+              ...updates,
+              'name': metaName,
+              'updated_at': DateTime.now().toIso8601String(),
+            });
+          }
+        } catch (retryE) {
+          developer.log('Retry updating users table failed: $retryE');
+        }
+      }
     }
   }
 }

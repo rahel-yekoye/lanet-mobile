@@ -8,7 +8,6 @@ import 'providers/lesson_provider.dart';
 import 'providers/fidel_provider.dart';
 import 'providers/auth_provider.dart';
 import 'services/dataset_service.dart';
-import 'services/session_manager.dart';
 
 import 'screens/home_screen.dart';
 
@@ -71,17 +70,26 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
+          create: (_) => AuthProvider(),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, LessonProvider>(
           create: (_) {
             final provider = LessonProvider(DatasetService());
             provider.load(assetPath);
             return provider;
           },
+          update: (_, auth, lessonProvider) {
+            final provider = lessonProvider ?? LessonProvider(DatasetService());
+            final userLanguage = auth.userData?['language'];
+            
+            if (userLanguage != null && userLanguage.toString().isNotEmpty) {
+              provider.updateLanguage(assetPath, userLanguage.toString());
+            }
+            return provider;
+          },
         ),
         ChangeNotifierProvider(
           create: (_) => FidelProvider(DatasetService())..load(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(),
         ),
       ],
       child: Consumer<AuthProvider>(
@@ -125,23 +133,6 @@ GoRouter _router(AuthProvider authProvider) {
       final isAuth = authProvider.isAuthenticated;
       final onboardingDone = authProvider.onboardingCompleted;
       final isLoading = authProvider.isLoading;
-      
-      // Also check if user has essential onboarding data as a secondary indicator
-      bool hasEssentialData = false;
-      if (isAuth && authProvider.userData != null) {
-        final userData = authProvider.userData!;
-        // If user has language, level, reason, or daily goal set, consider onboarding as completed
-        final dailyGoalCamel = userData['dailyGoal'];
-        final dailyGoalSnake = userData['daily_goal'];
-
-        hasEssentialData = (userData['language'] != null && userData['language'].toString().isNotEmpty) ||
-            (userData['level'] != null && userData['level'].toString().isNotEmpty) ||
-            (userData['reason'] != null && userData['reason'].toString().isNotEmpty) ||
-            ((dailyGoalCamel != null && dailyGoalCamel != 0) || (dailyGoalSnake != null && dailyGoalSnake != 0));
-      }
-      
-      // Determine if onboarding is truly complete (either backend flag OR essential data)
-      bool isOnboardingTrulyComplete = onboardingDone || hasEssentialData;
 
       final isAuthRoute =
           location == '/login' || location == '/register';
@@ -160,13 +151,13 @@ GoRouter _router(AuthProvider authProvider) {
       }
 
       // 🧭 Authenticated but onboarding not completed
-      if (isAuth && !isOnboardingTrulyComplete) {
+      if (isAuth && !onboardingDone) {
         debugPrint('Router: User authenticated but onboarding not complete, redirecting to onboarding');
         return isOnboardingRoute ? null : '/onboarding/language';
       }
 
       // ✅ Authenticated & onboarding completed
-      if (isAuth && isOnboardingTrulyComplete) {
+      if (isAuth && onboardingDone) {
         // If user is on auth, onboarding, or splash screens, navigate to home
         if (isAuthRoute || isOnboardingRoute || isSplash) {
           return '/home';

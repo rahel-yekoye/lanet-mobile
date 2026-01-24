@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/onboarding_service.dart';
-import '../../widgets/choice_card.dart';
 import '../../widgets/onboarding_scaffold.dart';
 
 class ReasonScreen extends StatelessWidget {
@@ -57,7 +56,7 @@ class ReasonScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ...reasons.map((reason) => _buildReasonOption(reason, context)).toList(),
+                  ...reasons.map((reason) => _buildReasonOption(reason, context)),
                 ],
               ),
             ),

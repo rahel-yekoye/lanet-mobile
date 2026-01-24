@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../services/progress_service.dart';
 import '../widgets/pattern_background.dart';
 
@@ -18,7 +17,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   int _achievementsCount = 0;
   bool _goalHitToday = false;
   int _freezeTokens = 0;
-  List<String> _recentAchievements = [];
+  final List<String> _recentAchievements = [];
 
   @override
   void initState() {

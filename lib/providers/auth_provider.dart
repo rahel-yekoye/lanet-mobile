@@ -26,6 +26,8 @@ class AuthProvider with ChangeNotifier {
 
   /// ✅ single source of truth for onboarding
   bool get onboardingCompleted {
+    if (_localOnboardingCompleted) return true;
+    
     if (_userData == null) return false;
 
     // Accept backend variations: snake_case or camelCase
@@ -36,14 +38,16 @@ class AuthProvider with ChangeNotifier {
     // Check if essential onboarding data exists
     final hasLanguage = _userData?['language'] != null && _userData!['language'].toString().isNotEmpty;
     final hasLevel = _userData?['level'] != null && _userData!['level'].toString().isNotEmpty;
-    final hasReason = _userData?['reason'] != null && _userData!['reason'].toString().isNotEmpty;
-    final hasDailyGoal = (_userData?['dailyGoal'] != null && _userData!['dailyGoal'] != 0) || 
-                        (_userData?['daily_goal'] != null && _userData!['daily_goal'] != 0);
     
-    final hasEssentialData = hasLanguage || hasLevel || hasReason || hasDailyGoal;
+    // STRICT CHECK: User must have at least language and level selected to be considered onboarded
+    // if the explicit flag is missing.
+    final hasEssentialData = hasLanguage && hasLevel;
 
     return (snake == true) || (camel == true) || (alt == true) || hasEssentialData;
   }
+
+  // Add a local override for immediate feedback
+  bool _localOnboardingCompleted = false;
 
   AuthProvider() {
     checkAuthStatus();
@@ -238,6 +242,10 @@ class AuthProvider with ChangeNotifier {
     required int dailyGoal,
   }) async {
     try {
+      // Optimistically update local state to prevent routing loops
+      _localOnboardingCompleted = true;
+      notifyListeners();
+
       await AuthService.updateProfile(
         language: language,
         level: level,
@@ -248,6 +256,9 @@ class AuthProvider with ChangeNotifier {
 
       await _updateAuthState();
     } catch (e) {
+      // Revert optimistic update on failure
+      _localOnboardingCompleted = false;
+      notifyListeners();
       debugPrint('Onboarding completion error: $e');
       rethrow;
     }

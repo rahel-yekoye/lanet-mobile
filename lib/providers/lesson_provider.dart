@@ -15,19 +15,27 @@ class LessonProvider extends ChangeNotifier {
   bool loading = true;
   String? error;
 
+  String? _currentLanguage;
+
   LessonProvider(this._datasetService);
 
-  Future<void> load(String assetPath) async {
+  Future<void> load(String assetPath, {String? language}) async {
     try {
-      loading = true;
-      error = null;
-      notifyListeners();
+      // Defer state update to next microtask to avoid "setState during build" errors
+      // if called from ProxyProvider.update
+      await Future.microtask(() {
+        loading = true;
+        error = null;
+        notifyListeners();
+      });
       
       // Load all categories first
       byCategory = await _datasetService.loadByCategory(assetPath);
       
       // Get user's selected language
-      final userLanguage = await OnboardingService.getValue(OnboardingService.keyLanguage);
+      // Priority: 1. Passed argument, 2. OnboardingService (local), 3. Null (all)
+      final userLanguage = language ?? await OnboardingService.getValue(OnboardingService.keyLanguage);
+      _currentLanguage = userLanguage;
       
       // Filter categories by user's selected language if available
       if (userLanguage != null && userLanguage.isNotEmpty) {
@@ -41,6 +49,14 @@ class LessonProvider extends ChangeNotifier {
     } finally {
       loading = false;
       notifyListeners();
+    }
+  }
+
+  // Helper to update language if changed
+  void updateLanguage(String assetPath, String? language) {
+    if (language != null && language != _currentLanguage) {
+      _currentLanguage = language; // Update immediately to prevent repeated calls
+      load(assetPath, language: language);
     }
   }
 

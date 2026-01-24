@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/onboarding_service.dart';
-import '../../widgets/choice_card.dart';
 import '../../widgets/onboarding_scaffold.dart';
 
 class LanguageScreen extends StatelessWidget {
@@ -53,7 +52,7 @@ class LanguageScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ...languages.map((lang) => _buildLanguageOption(lang, context)).toList(),
+                  ...languages.map((lang) => _buildLanguageOption(lang, context)),
                 ],
               ),
             ),

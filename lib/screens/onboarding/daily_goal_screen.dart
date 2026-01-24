@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/onboarding_service.dart';
-import '../../widgets/choice_card.dart';
 import '../../widgets/onboarding_scaffold.dart';
 
 class DailyGoalScreen extends StatelessWidget {
@@ -63,7 +62,7 @@ class DailyGoalScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ...goals.map((goal) => _buildGoalOption(goal, context)).toList(),
+                  ...goals.map((goal) => _buildGoalOption(goal, context)),
                 ],
               ),
             ),
@@ -161,7 +160,9 @@ class DailyGoalScreen extends StatelessWidget {
           }
 
           // Navigate to home - router will handle proper redirection
-          context.go('/home');
+          if (context.mounted) {
+            context.go('/home');
+          }
         },
       ),
     );

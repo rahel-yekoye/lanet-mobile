@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/onboarding_service.dart';
-import '../../widgets/choice_card.dart';
 import '../../widgets/onboarding_scaffold.dart';
 
 class LevelScreen extends StatelessWidget {
@@ -53,7 +52,7 @@ class LevelScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ...levels.map((level) => _buildLevelOption(level, context)).toList(),
+                  ...levels.map((level) => _buildLevelOption(level, context)),
                 ],
               ),
             ),

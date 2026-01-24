@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
 import 'web_utils_stub.dart' if (dart.library.html) 'web_utils.dart';
 
 import 'package:http_parser/http_parser.dart';
