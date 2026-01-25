@@ -46,18 +46,36 @@ class AuthService {
   // Login user
   static Future<app_model.User> login(String email, String password) async {
     try {
-      final user = await SupabaseService.signIn(email, password);
+      final normalizedEmail = email.trim().toLowerCase();
+      final user = await SupabaseService.signIn(normalizedEmail, password);
       if (user == null) {
         throw Exception('Invalid credentials');
       }
       
       // Fetch user data from database
-      final userData = await _fetchUserProfile(user.id);
+      final userData = await SupabaseService.fetchUserData();
       
-      // Save auth data locally
-      await _saveAuthData('', userData);
-      
-      return app_model.User.fromJson(userData);
+      if (userData != null) {
+        // Save auth data locally
+        await _saveAuthData('', userData);
+        
+        return app_model.User.fromJson(userData);
+      } else {
+        // Fallback to minimal user data
+        final fallbackData = {
+          'id': user.id,
+          'name': '',
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+        await _saveAuthData('', fallbackData);
+        return app_model.User.fromJson(fallbackData);
+      }
     } catch (e) {
       developer.log('Login error: $e');
       rethrow;
@@ -75,34 +93,39 @@ class AuthService {
     int? dailyGoal,
   }) async {
     try {
-      final user = await SupabaseService.signUp(email, password, name: name);
-      if (user == null) {
-        throw Exception('Registration failed');
-      }
-      
-      // Create initial user profile - NEW USERS should go through onboarding
-      final userData = {
-        'id': user.id,
-        'name': name,
-        'email': email,
-        'xp': 0,
-        'level': 1,
-        'streak': 0,
-        'lastActiveDate': DateTime.now().toIso8601String(),
-        'dailyGoal': 100, // Default value
-        'dailyXpEarned': 0,
-        'settings': {},
-        // Don't set onboarding fields yet - let user complete onboarding flow
-      };
+      final normalizedEmail = email.trim().toLowerCase();
+      final created = await SupabaseService.signUp(normalizedEmail, password, name: name);
+      final user = created ?? await SupabaseService.signIn(normalizedEmail, password);
+      if (user == null) throw Exception('Registration failed');
       
       // Note: The database trigger 'on_auth_user_created' automatically creates
       // rows in 'public.users' and 'public.profiles'. We don't need to manually
       // insert them here, which avoids 409 Conflict errors and schema mismatch issues.
       
-      // Save auth data locally
-      await _saveAuthData('', userData);
+      // Fetch user data from database
+      final userData = await SupabaseService.fetchUserData();
       
-      return app_model.User.fromJson(userData);
+      if (userData != null) {
+        // Save auth data locally
+        await _saveAuthData('', userData);
+        
+        return app_model.User.fromJson(userData);
+      } else {
+        // Fallback to minimal user data
+        final fallbackData = {
+          'id': user.id,
+          'name': name,
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+        await _saveAuthData('', fallbackData);
+        return app_model.User.fromJson(fallbackData);
+      }
     } catch (e) {
       developer.log('Registration error: $e');
       rethrow;
@@ -131,8 +154,24 @@ class AuthService {
         throw Exception('No authenticated user');
       }
       
-      final userData = await _fetchUserProfile(user.id);
-      return app_model.User.fromJson(userData);
+      final userData = await SupabaseService.fetchUserData();
+      if (userData != null) {
+        return app_model.User.fromJson(userData);
+      } else {
+        // Fallback to minimal user data
+        final fallbackData = {
+          'id': user.id,
+          'name': '',
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+        return app_model.User.fromJson(fallbackData);
+      }
     } catch (e) {
       developer.log('Get current user error: $e');
       rethrow;
@@ -165,10 +204,26 @@ class AuthService {
       );
       
       // Fetch updated user data
-      final userData = await _fetchUserProfile(user.id);
-      await _saveAuthData('', userData);
-      
-      return app_model.User.fromJson(userData);
+      final userData = await SupabaseService.fetchUserData();
+      if (userData != null) {
+        await _saveAuthData('', userData);
+        return app_model.User.fromJson(userData);
+      } else {
+        // Fallback to minimal user data
+        final fallbackData = {
+          'id': user.id,
+          'name': name ?? '',
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': dailyGoal ?? 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+        await _saveAuthData('', fallbackData);
+        return app_model.User.fromJson(fallbackData);
+      }
     } catch (e) {
       developer.log('Update profile error: $e');
       rethrow;
@@ -181,5 +236,11 @@ class AuthService {
     // Forward to SupabaseService
     final data = await SupabaseService.fetchUserData();
     return data ?? {};
+  }
+
+  // Helper method to fetch user profile from Supabase - DEPRECATED
+  static Future<Map<String, dynamic>> fetchUserProfile(String userId) async {
+    // Use SupabaseService directly instead
+    return await _fetchUserProfile(userId);
   }
 }

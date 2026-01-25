@@ -50,13 +50,31 @@ class User extends Equatable {
        settings = settings ?? {};
 
   factory User.fromJson(Map<String, dynamic> json) {
+    int _asInt(dynamic v) {
+      if (v is int) return v;
+      if (v is double) return v.toInt();
+      if (v is String) {
+        final i = int.tryParse(v);
+        if (i != null) return i;
+        final d = double.tryParse(v);
+        if (d != null) return d.toInt();
+      }
+      return 0;
+    }
+    final rawDG = json['dailyGoal'] ?? json['daily_goal'];
+    final dailyGoalParsed = rawDG == null ? 100 : _asInt(rawDG);
+    final rawDX = json['dailyXpEarned'] ?? json['daily_xp_earned'];
+    final dailyXpParsed = rawDX == null ? 0 : _asInt(rawDX);
+    final xpParsed = _asInt(json['xp']);
+    final levelParsed = _asInt(json['level']);
+    final streakParsed = _asInt(json['streak']);
     return User(
       id: json['id'] as String,
       name: json['name'] as String,
       avatarUrl: json['avatarUrl'] as String?,
-      xp: json['xp'] as int? ?? 0,
-      level: json['level'] as int? ?? 1,
-      streak: json['streak'] as int? ?? 0,
+      xp: xpParsed,
+      level: levelParsed == 0 ? 1 : levelParsed,
+      streak: streakParsed,
       lastActiveDate: json['lastActiveDate'] != null 
         ? (json['lastActiveDate'] is String 
             ? DateTime.tryParse(json['lastActiveDate']) 
@@ -64,8 +82,8 @@ class User extends Equatable {
                 ? json['lastActiveDate'] 
                 : DateTime.now()) 
         : DateTime.now(),
-      dailyGoal: json['dailyGoal'] as int? ?? json['daily_goal'] as int? ?? 100,
-      dailyXpEarned: json['dailyXpEarned'] as int? ?? json['daily_xp_earned'] as int? ?? 0,
+      dailyGoal: dailyGoalParsed,
+      dailyXpEarned: dailyXpParsed,
       settings: (json['settings'] as Map<dynamic, dynamic>?)?.cast<String, dynamic>() ?? {},
     );
   }

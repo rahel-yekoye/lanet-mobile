@@ -33,7 +33,7 @@ class SupabaseService {
       final response = await client.auth.signUp(
         email: email,
         password: password,
-        // Disable email confirmation for immediate access
+        data: name != null && name.isNotEmpty ? {'full_name': name} : null,
         emailRedirectTo: null,
       );
       
@@ -51,13 +51,11 @@ class SupabaseService {
       
       return response.user;
     } catch (e) {
-      print('Sign up error: $e');
-      print('Error type: ${e.runtimeType}');
-      // Handle rate limit specifically
+      developer.log('Sign up error: $e');
       if (e.toString().contains('over_email_send_rate_limit')) {
-        print('Rate limit hit - this is normal during testing');
+        developer.log('Rate limit hit during sign up');
       }
-      return null;
+      rethrow;
     }
   }
 
@@ -86,12 +84,11 @@ class SupabaseService {
       
       return response.user;
     } catch (e) {
-      print('Sign in error: $e');
-      // Handle rate limit specifically
+      developer.log('Sign in error: $e');
       if (e.toString().contains('over_email_send_rate_limit')) {
-        print('Rate limit hit during sign in - this is normal');
+        developer.log('Rate limit hit during sign in');
       }
-      return null;
+      rethrow;
     }
   }
 
@@ -193,24 +190,48 @@ class SupabaseService {
 
   // Save a single preference tag
   static Future<void> _savePreferenceTag(String userId, String prefix, String value) async {
+    // 1. Unselect ANY existing tags for this category (prefix)
+    // RLS "Users can update own preferences" allows this.
     try {
-      // 1. Delete ANY existing tags for this category (prefix)
-      // This handles both "unselecting" old ones and avoiding 409 conflicts on unique constraints
-      // (Supabase/PostgREST 409 usually means unique constraint violation, so clearing old data helps)
       await client
           .from('user_preferences')
-          .delete()
+          .update({'selected': false})
           .eq('user_id', userId)
           .like('purpose', '$prefix%');
-          
-      // 2. Insert the new tag
-      await client.from('user_preferences').insert({
-        'user_id': userId,
-        'purpose': '${prefix}_$value',
-        'selected': true,
-      });
     } catch (e) {
-       developer.log('Error saving preference tag: $e');
+       // Ignore, table might be empty or update not needed
+    }
+
+    // 2. Set the new tag
+    // We use a check-then-act pattern to work around potential RLS limitations on UPSERT
+    // or missing DELETE permissions.
+    final purpose = '${prefix}_$value';
+    
+    try {
+      // Check if the specific tag already exists
+      final existing = await client
+          .from('user_preferences')
+          .select()
+          .eq('user_id', userId)
+          .eq('purpose', purpose)
+          .maybeSingle();
+          
+      if (existing != null) {
+        // Update existing row to be selected
+        await client
+            .from('user_preferences')
+            .update({'selected': true})
+            .eq('id', existing['id']); 
+      } else {
+        // Insert new row
+        await client.from('user_preferences').insert({
+          'user_id': userId,
+          'purpose': purpose,
+          'selected': true,
+        });
+      }
+    } catch (e) {
+       developer.log('Error saving preference tag ($purpose): $e');
     }
   }
 
@@ -255,7 +276,6 @@ class SupabaseService {
             .upsert({
               'id': userId,
               'full_name': name,
-              'updated_at': DateTime.now().toIso8601String(),
             });
       } catch (e) {
         developer.log('Error updating profiles: $e');

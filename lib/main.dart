@@ -29,8 +29,8 @@ void main() async {
   
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://dvjwoggpbhxygrhfraut.supabase.co',
-    anonKey: 'sb_publishable_gmm2eBcmqVtPQYgC6ibQJA_zKApKLxv',
+    url: 'https://dkhdekawkltxpzmngvii.supabase.co',
+    anonKey: 'sb_publishable_UQpSzaZNC4rUpLtaf-ezmw_iJHbe1ta',
   );
   
   // Show a readable error widget in the app when a build/layout error occurs
