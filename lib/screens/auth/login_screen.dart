@@ -43,9 +43,28 @@ class _LoginScreenState extends State<LoginScreen> {
         context.go('/splash');
       }
     } catch (e) {
+      print('Login error caught: \$e');
+      print('Error type: \${e.runtimeType}');
+      
+      String errorMessage = e.toString();
+      
+      // Handle specific error messages
+      if (errorMessage.toLowerCase().contains('network') ||
+          errorMessage.toLowerCase().contains('connection') ||
+          errorMessage.toLowerCase().contains('timeout') ||
+          errorMessage.toLowerCase().contains('fetch') ||
+          errorMessage.toLowerCase().contains('ssl') ||
+          errorMessage.toLowerCase().contains('certificate')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (errorMessage.toLowerCase().contains('invalid') ||
+                 errorMessage.toLowerCase().contains('credentials')) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (errorMessage.toLowerCase().contains('too many')) {
+        errorMessage = 'Too many attempts. Please wait a moment and try again.';
+      }
+      
       setState(() {
-        _errorMessage =
-            e.toString().replaceAll('Exception: ', '');
+        _errorMessage = errorMessage.replaceAll('Exception: ', '');
       });
     } finally {
       if (mounted) {

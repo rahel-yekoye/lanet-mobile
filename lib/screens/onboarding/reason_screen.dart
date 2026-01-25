@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/onboarding_service.dart';
 import '../../widgets/onboarding_scaffold.dart';
 
 class ReasonScreen extends StatelessWidget {
   const ReasonScreen({super.key});
 
-  final reasons = const ["Travel", "Study", "Work", "Culture", "Personal Growth"];
+  final reasons = const [
+    "Travel",
+    "Study",
+    "Work",
+    "Culture",
+    "Personal Growth"
+  ];
 
   Color _getReasonColor(String reason) {
     switch (reason.toLowerCase()) {
@@ -33,7 +41,8 @@ class ReasonScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -56,7 +65,8 @@ class ReasonScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ...reasons.map((reason) => _buildReasonOption(reason, context)),
+                  ...reasons
+                      .map((reason) => _buildReasonOption(reason, context)),
                 ],
               ),
             ),
@@ -69,7 +79,7 @@ class ReasonScreen extends StatelessWidget {
   Widget _buildReasonOption(String reason, BuildContext context) {
     IconData icon;
     Color iconColor;
-    
+
     switch (reason.toLowerCase()) {
       case 'travel':
         icon = Icons.flight_takeoff;
@@ -95,7 +105,7 @@ class ReasonScreen extends StatelessWidget {
         icon = Icons.question_mark;
         iconColor = Colors.grey;
     }
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -118,8 +128,21 @@ class ReasonScreen extends StatelessWidget {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () async {
+          print('DEBUG: Reason Selected: $reason');
           await OnboardingService.setValue(OnboardingService.keyReason, reason);
-          context.push('/onboarding/daily_goal');
+
+          // Incrementally save to backend
+          try {
+            final authProvider =
+                Provider.of<AuthProvider>(context, listen: false);
+            await authProvider.updateProfile(reason: reason);
+          } catch (e) {
+            debugPrint('Error saving reason incrementally: $e');
+          }
+
+          if (context.mounted) {
+            context.push('/onboarding/daily_goal');
+          }
         },
       ),
     );

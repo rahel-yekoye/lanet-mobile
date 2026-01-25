@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/supabase_service.dart';
+import '../services/progress_service.dart';
 import '../models/user_model.dart' as app_model;
+import '../config/supabase_config.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isAuthenticated = false;
@@ -27,23 +29,31 @@ class AuthProvider with ChangeNotifier {
   /// ✅ single source of truth for onboarding
   bool get onboardingCompleted {
     if (_localOnboardingCompleted) return true;
-    
+
     if (_userData == null) return false;
 
     // Accept backend variations: snake_case or camelCase
     final snake = _userData?['onboarding_completed'];
     final camel = _userData?['onboardingCompleted'];
     final alt = _userData?['onboardingComplete'];
-    
-    // Check if essential onboarding data exists
-    final hasLanguage = _userData?['language'] != null && _userData!['language'].toString().isNotEmpty;
-    final hasLevel = _userData?['level'] != null && _userData!['level'].toString().isNotEmpty;
-    
-    // STRICT CHECK: User must have at least language and level selected to be considered onboarded
-    // if the explicit flag is missing.
-    final hasEssentialData = hasLanguage && hasLevel;
 
-    return (snake == true) || (camel == true) || (alt == true) || hasEssentialData;
+    // Explicit flags (set at the very end of onboarding)
+    if ((snake == true) || (camel == true) || (alt == true)) return true;
+
+    // Legacy users with XP are considered done
+    final hasXP = (_userData?['xp'] is num) && (_userData!['xp'] as num) > 0;
+    if (hasXP) return true;
+
+    // If essential fields are present, consider onboarding complete
+    final hasLanguage = _userData?['language'] != null &&
+        _userData!['language'].toString().isNotEmpty;
+    final hasLevel = _userData?['level'] != null &&
+        _userData!['level'].toString().isNotEmpty;
+    final hasReason = _userData?['reason'] != null &&
+        _userData!['reason'].toString().isNotEmpty;
+    if (hasLanguage && hasLevel && hasReason) return true;
+
+    return false;
   }
 
   // Add a local override for immediate feedback
@@ -62,48 +72,112 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check Supabase auth session
-      final session = SupabaseService.client.auth.currentSession;
-      if (session?.user != null) {
-        // User is authenticated with Supabase
-        _isAuthenticated = true;
-        _authToken = session!.accessToken;
-        
-        // Fetch user data
-        final userData = await SupabaseService.fetchUserData();
-        if (userData != null) {
-          _userData = userData;
+      debugPrint(
+          'AuthProvider.checkAuthStatus: Checking authentication status');
+      if (SupabaseConfig.isDemoMode) {
+        final stored = await AuthService.getUserData();
+        if (stored != null) {
+          _isAuthenticated = true;
+          _authToken = null;
+          _userData = stored;
           try {
-            _userModel = app_model.User.fromJson(userData);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
+            _userModel = app_model.User.fromJson(stored);
+          } catch (_) {}
         } else {
-          // Create minimal user data if not found
-          _userData = {
-            'id': session.user.id,
-            'name': session.user.userMetadata?['full_name'] ?? session.user.email?.split('@')[0] ?? '',
-            'email': session.user.email ?? '',
-            'xp': 0,
-            'level': 1,
-            'streak': 0,
-            'lastActiveDate': DateTime.now().toIso8601String(),
-            'dailyGoal': 100,
-            'dailyXpEarned': 0,
-            'settings': {},
-          };
-          try {
-            _userModel = app_model.User.fromJson(_userData!);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
+          await _clearAuthState();
         }
       } else {
-        await _clearAuthState();
+        final session = SupabaseService.client.auth.currentSession;
+        if (session?.user != null) {
+          debugPrint(
+              'AuthProvider.checkAuthStatus: User is authenticated, fetching user data');
+
+          // User is authenticated with Supabase
+          _isAuthenticated = true;
+          _authToken = session!.accessToken;
+
+          // Fetch user data
+          final userData = await SupabaseService.fetchUserData();
+          if (userData != null) {
+            _userData = userData;
+            try {
+              _userModel = app_model.User.fromJson(userData);
+            } catch (e) {
+              debugPrint('Error creating user model: $e');
+            }
+            try {
+              final ps = ProgressService();
+              final sDaily =
+                  userData['daily_xp_earned'] ?? userData['dailyXpEarned'];
+              final sStreak = userData['streak'];
+              final sGoal = userData['daily_goal'] ?? userData['dailyGoal'];
+              if (sGoal != null) {
+                final g = sGoal is num
+                    ? sGoal.toInt()
+                    : int.tryParse(sGoal.toString());
+                if (g != null) await ps.setDailyGoal(g);
+              }
+              if (sDaily != null) {
+                final dxp = sDaily is num
+                    ? sDaily.toInt()
+                    : int.tryParse(sDaily.toString());
+                if (dxp != null) await ps.setDailyXPForToday(dxp);
+              }
+              if (sStreak != null) {
+                final st = sStreak is num
+                    ? sStreak.toInt()
+                    : int.tryParse(sStreak.toString());
+                if (st != null) await ps.setStreak(st);
+              }
+            } catch (_) {}
+          } else {
+            // Create minimal user data if not found
+            _userData = {
+              'id': session.user.id,
+              'name': session.user.userMetadata?['full_name'] ??
+                  session.user.email?.split('@')[0] ??
+                  '',
+              'email': session.user.email ?? '',
+              'xp': 0,
+              'level': 1,
+              'streak': 0,
+              'lastActiveDate': DateTime.now().toIso8601String(),
+              'dailyGoal': 100,
+              'dailyXpEarned': 0,
+              'settings': {},
+            };
+            try {
+              _userModel = app_model.User.fromJson(_userData!);
+            } catch (e) {
+              debugPrint('Error creating user model: $e');
+            }
+          }
+        } else {
+          debugPrint(
+              'AuthProvider.checkAuthStatus: No authenticated session, clearing auth state');
+          await _clearAuthState();
+        }
       }
     } catch (e) {
       debugPrint('Error checking auth status: $e');
-      await _clearAuthState();
+      debugPrint('Error type: ${e.runtimeType}');
+
+      // Check if it's a network error
+      final errorMsg = e.toString().toLowerCase();
+      if (errorMsg.contains('network') ||
+          errorMsg.contains('fetch') ||
+          errorMsg.contains('timeout') ||
+          errorMsg.contains('socket') ||
+          errorMsg.contains('connection') ||
+          errorMsg.contains('ssl') ||
+          errorMsg.contains('certificate')) {
+        debugPrint(
+            'Network-related error in auth status check, keeping current state');
+        // For network errors, we might want to keep the current state instead of clearing it
+        // This allows offline usage if user was previously logged in
+      } else {
+        await _clearAuthState();
+      }
     }
 
     _isLoading = false;
@@ -158,6 +232,8 @@ class AuthProvider with ChangeNotifier {
       await _clearAuthState();
     } catch (e) {
       debugPrint('Logout error: $e');
+      // Even if logout fails, clear the local auth state
+      await _clearAuthState();
       rethrow;
     }
   }
@@ -171,48 +247,112 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check Supabase auth session
-      final session = SupabaseService.client.auth.currentSession;
-      if (session?.user != null) {
-        // User is authenticated with Supabase
-        _isAuthenticated = true;
-        _authToken = session!.accessToken;
-        
-        // Fetch user data
-        final userData = await SupabaseService.fetchUserData();
-        if (userData != null) {
-          _userData = userData;
+      debugPrint(
+          'AuthProvider._updateAuthState: Updating authentication state');
+      if (SupabaseConfig.isDemoMode) {
+        final stored = await AuthService.getUserData();
+        if (stored != null) {
+          _isAuthenticated = true;
+          _authToken = null;
+          _userData = stored;
           try {
-            _userModel = app_model.User.fromJson(userData);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
+            _userModel = app_model.User.fromJson(stored);
+          } catch (_) {}
         } else {
-          // Create minimal user data if not found
-          _userData = {
-            'id': session.user.id,
-            'name': session.user.userMetadata?['full_name'] ?? session.user.email?.split('@')[0] ?? '',
-            'email': session.user.email ?? '',
-            'xp': 0,
-            'level': 1,
-            'streak': 0,
-            'lastActiveDate': DateTime.now().toIso8601String(),
-            'dailyGoal': 100,
-            'dailyXpEarned': 0,
-            'settings': {},
-          };
-          try {
-            _userModel = app_model.User.fromJson(_userData!);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
+          await _clearAuthState();
         }
       } else {
-        await _clearAuthState();
+        final session = SupabaseService.client.auth.currentSession;
+        if (session?.user != null) {
+          debugPrint(
+              'AuthProvider._updateAuthState: User is authenticated, fetching user data');
+
+          // User is authenticated with Supabase
+          _isAuthenticated = true;
+          _authToken = session!.accessToken;
+
+          // Fetch user data
+          final userData = await SupabaseService.fetchUserData();
+          if (userData != null) {
+            _userData = userData;
+            try {
+              _userModel = app_model.User.fromJson(userData);
+            } catch (e) {
+              debugPrint('Error creating user model: $e');
+            }
+            try {
+              final ps = ProgressService();
+              final sDaily =
+                  userData['daily_xp_earned'] ?? userData['dailyXpEarned'];
+              final sStreak = userData['streak'];
+              final sGoal = userData['daily_goal'] ?? userData['dailyGoal'];
+              if (sGoal != null) {
+                final g = sGoal is num
+                    ? sGoal.toInt()
+                    : int.tryParse(sGoal.toString());
+                if (g != null) await ps.setDailyGoal(g);
+              }
+              if (sDaily != null) {
+                final dxp = sDaily is num
+                    ? sDaily.toInt()
+                    : int.tryParse(sDaily.toString());
+                if (dxp != null) await ps.setDailyXPForToday(dxp);
+              }
+              if (sStreak != null) {
+                final st = sStreak is num
+                    ? sStreak.toInt()
+                    : int.tryParse(sStreak.toString());
+                if (st != null) await ps.setStreak(st);
+              }
+            } catch (_) {}
+          } else {
+            // Create minimal user data if not found
+            _userData = {
+              'id': session.user.id,
+              'name': session.user.userMetadata?['full_name'] ??
+                  session.user.email?.split('@')[0] ??
+                  '',
+              'email': session.user.email ?? '',
+              'xp': 0,
+              'level': 1,
+              'streak': 0,
+              'lastActiveDate': DateTime.now().toIso8601String(),
+              'dailyGoal': 100,
+              'dailyXpEarned': 0,
+              'settings': {},
+            };
+            try {
+              _userModel = app_model.User.fromJson(_userData!);
+            } catch (e) {
+              debugPrint('Error creating user model: $e');
+            }
+          }
+        } else {
+          debugPrint(
+              'AuthProvider._updateAuthState: No authenticated session, clearing auth state');
+          await _clearAuthState();
+        }
       }
     } catch (e) {
       debugPrint('Error updating auth state: $e');
-      await _clearAuthState();
+      debugPrint('Error type: ${e.runtimeType}');
+
+      // Check if it's a network error
+      final errorMsg = e.toString().toLowerCase();
+      if (errorMsg.contains('network') ||
+          errorMsg.contains('fetch') ||
+          errorMsg.contains('timeout') ||
+          errorMsg.contains('socket') ||
+          errorMsg.contains('connection') ||
+          errorMsg.contains('ssl') ||
+          errorMsg.contains('certificate')) {
+        debugPrint(
+            'Network-related error in update auth state, keeping current state');
+        // For network errors, we might want to keep the current state instead of clearing it
+        // This allows offline usage if user was previously logged in
+      } else {
+        await _clearAuthState();
+      }
     }
 
     _isLoading = false;
@@ -244,6 +384,16 @@ class AuthProvider with ChangeNotifier {
     try {
       // Optimistically update local state to prevent routing loops
       _localOnboardingCompleted = true;
+      // Also set essential fields locally
+      final updated = Map<String, dynamic>.from(_userData ?? {});
+      updated['language'] = language;
+      updated['level'] = level;
+      updated['reason'] = reason;
+      updated['daily_goal'] = dailyGoal;
+      updated['dailyGoal'] = dailyGoal;
+      updated['onboarding_completed'] = true;
+      updated['onboardingCompleted'] = true;
+      _userData = updated;
       notifyListeners();
 
       await AuthService.updateProfile(
@@ -254,13 +404,48 @@ class AuthProvider with ChangeNotifier {
         onboardingCompleted: true,
       );
 
-      await _updateAuthState();
+      // 3. Silent Sync: Fetch fresh data without triggering global isLoading
+      // This ensures we have the server's truth without flashing loading screens
+      final freshData = await SupabaseService.fetchUserData();
+      if (freshData != null) {
+        // CRITICAL: Preserve local optimistic updates if server data is lagging/missing
+        // This prevents routing loops where the router sees the data disappear
+        // We check _userData because it contains the optimistic updates we just applied
+        if (_userData != null) {
+          if (freshData['language'] == null ||
+              freshData['language'].toString().isEmpty) {
+            freshData['language'] = _userData!['language'];
+          }
+          if (freshData['level'] == null ||
+              freshData['level'].toString().isEmpty) {
+            freshData['level'] = _userData!['level'];
+          }
+          if (freshData['reason'] == null ||
+              freshData['reason'].toString().isEmpty) {
+            freshData['reason'] = _userData!['reason'];
+          }
+          if (freshData['dailyGoal'] == null) {
+            freshData['dailyGoal'] = _userData!['dailyGoal'];
+            freshData['daily_goal'] = _userData!['daily_goal'];
+          }
+          if (freshData['onboardingCompleted'] != true &&
+              _userData!['onboardingCompleted'] == true) {
+            freshData['onboardingCompleted'] = true;
+            freshData['onboarding_completed'] = true;
+          }
+        }
+
+        _userData = freshData;
+        try {
+          _userModel = app_model.User.fromJson(freshData);
+        } catch (e) {
+          debugPrint('Error creating user model during silent sync: $e');
+        }
+        notifyListeners();
+      }
     } catch (e) {
-      // Revert optimistic update on failure
-      _localOnboardingCompleted = false;
-      notifyListeners();
       debugPrint('Onboarding completion error: $e');
-      rethrow;
+      // Keep local completion to avoid redirect loop; backend sync can happen later
     }
   }
 
@@ -276,6 +461,25 @@ class AuthProvider with ChangeNotifier {
     int? dailyGoal,
     bool? onboardingCompleted,
   }) async {
+    // Optimistic update: Update local state immediately to prevent routing loops
+    // This allows the Router to see the new state (e.g. language set) before the server confirms it
+    final newUserData = Map<String, dynamic>.from(_userData ?? {});
+    if (name != null) newUserData['name'] = name;
+    if (language != null) newUserData['language'] = language;
+    if (level != null) newUserData['level'] = level;
+    if (reason != null) newUserData['reason'] = reason;
+    if (dailyGoal != null) {
+      newUserData['daily_goal'] = dailyGoal;
+      newUserData['dailyGoal'] = dailyGoal;
+    }
+    if (onboardingCompleted != null) {
+      newUserData['onboarding_completed'] = onboardingCompleted;
+      newUserData['onboardingCompleted'] = onboardingCompleted;
+    }
+
+    _userData = newUserData;
+    notifyListeners();
+
     try {
       await AuthService.updateProfile(
         name: name,
@@ -285,10 +489,18 @@ class AuthProvider with ChangeNotifier {
         dailyGoal: dailyGoal,
         onboardingCompleted: onboardingCompleted,
       );
+      // We still update auth state to get canonical data from server
       await _updateAuthState();
     } catch (e) {
       debugPrint('Update profile error: $e');
-      rethrow;
+      // We do NOT revert optimistic updates for onboarding steps (language, etc.)
+      // because getting stuck in a loop is worse than having a temporary sync mismatch.
+      // The silent sync in future app starts will correct it.
+
+      // However, we should rethrow if it's a critical error that UI needs to handle
+      // But for onboarding flow, we prefer to proceed.
+      print(
+          'DEBUG: Suppressing error in updateProfile to allow navigation: $e');
     }
   }
 }

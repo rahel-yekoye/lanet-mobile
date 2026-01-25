@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/onboarding_service.dart';
 import '../../widgets/onboarding_scaffold.dart';
 
@@ -29,7 +31,8 @@ class LevelScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -66,7 +69,7 @@ class LevelScreen extends StatelessWidget {
     IconData icon;
     Color iconColor;
     String description;
-    
+
     switch (level.toLowerCase()) {
       case 'beginner':
         icon = Icons.school;
@@ -88,7 +91,7 @@ class LevelScreen extends StatelessWidget {
         iconColor = Colors.grey;
         description = 'Other';
     }
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -118,8 +121,21 @@ class LevelScreen extends StatelessWidget {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () async {
+          print('DEBUG: Level Selected: $level');
           await OnboardingService.setValue(OnboardingService.keyLevel, level);
-          context.push('/onboarding/reason');
+
+          // Incrementally save to backend
+          try {
+            final authProvider =
+                Provider.of<AuthProvider>(context, listen: false);
+            await authProvider.updateProfile(level: level);
+          } catch (e) {
+            debugPrint('Error saving level incrementally: $e');
+          }
+
+          if (context.mounted) {
+            context.push('/onboarding/reason');
+          }
         },
       ),
     );

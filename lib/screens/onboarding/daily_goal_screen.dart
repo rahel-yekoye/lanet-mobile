@@ -133,6 +133,7 @@ class DailyGoalScreen extends StatelessWidget {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () async {
+          print('DEBUG: Daily Goal Selected: $goal');
           await OnboardingService.setValue(OnboardingService.keyGoal, goal);
           await OnboardingService.completeOnboarding();
 
