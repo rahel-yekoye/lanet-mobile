@@ -1,10 +1,10 @@
 // lib/screens/alphabet/alphabet_family_screen.dart
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:lanet_mobile/models/fidel_model.dart';
 import 'package:lanet_mobile/providers/fidel_provider.dart';
 import 'package:lanet_mobile/screens/alphabet/letter_detail_screen.dart';
 import 'package:lanet_mobile/services/srs_service.dart';
+import 'package:lanet_mobile/services/alphabet_audio_service.dart';
 import 'package:lanet_mobile/widgets/pattern_background.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,8 +20,8 @@ class AlphabetFamilyScreen extends StatefulWidget {
 }
 
 class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
   final SRSService _srsService = SRSService();
+  final AlphabetAudioService _alphabetAudioService = AlphabetAudioService();
 
   int _score = 0;
   int _mode = 0; // 0 = Learn mode, 1 = Quiz mode
@@ -105,20 +105,16 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
   }
 
   Future<void> _playSound(String audioFile) async {
-    if (audioFile.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('🔊 Audio coming soon! Imagine the sound 😊')),
-      );
-      return;
-    }
-    try {
-      await _audioPlayer.play(AssetSource('assets/audio/$audioFile'));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('🔊 Audio not ready yet — quiz continues!')),
-      );
+    // Use the character-based audio service instead of audioFile from CSV
+    // This method is called with audioFile, but we'll use the character from currentTarget
+    if (_currentTarget != null) {
+      final played = await _alphabetAudioService.playAlphabetAudio(_currentTarget!.character);
+      if (!played && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('🔊 Audio not ready yet — quiz continues!')),
+        );
+      }
     }
   }
 
@@ -135,7 +131,8 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
     _currentTarget = shuffled.first;
     _quizOptions = [shuffled.first, ...shuffled.skip(1).take(3)]..shuffle();
 
-    _playSound(_currentTarget!.audioFile);
+    // Play audio using character-based mapping
+    _playSound('');
   }
 
   Future<void> _checkAnswer(FidelModel selected) async {
@@ -177,11 +174,24 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => LetterDetailScreen(fidel: fidel)),
-          );
+        onTap: () async {
+          // Play audio when alphabet is clicked - this is the primary action
+          final played = await _alphabetAudioService.playAlphabetAudio(fidel.character);
+          
+          // Only navigate after audio has started playing (or if audio failed)
+          // This ensures user hears the sound before navigation
+          if (played) {
+            // Wait for audio to start playing before navigating
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+          
+          // Then navigate to detail screen
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => LetterDetailScreen(fidel: fidel)),
+            );
+          }
         },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

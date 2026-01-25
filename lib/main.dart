@@ -130,7 +130,6 @@ GoRouter _router(AuthProvider authProvider) {
     redirect: (context, state) {
       final location = state.uri.path;
 
-      final isAuth = authProvider.isAuthenticated;
       final onboardingDone = authProvider.onboardingCompleted;
       final isLoading = authProvider.isLoading;
 
@@ -140,26 +139,27 @@ GoRouter _router(AuthProvider authProvider) {
           location.startsWith('/onboarding');
       final isSplash = location == '/splash';
 
-      // ⏳ Still determining auth state
+      // ⏳ Still determining state (skip auth check, just wait for loading)
       if (isLoading) {
         return isSplash ? null : '/splash';
       }
 
-      // 🚫 Not authenticated
-      if (!isAuth) {
-        return isAuthRoute ? null : '/login';
+      // 🚫 Authentication bypassed - allow access to all routes
+      // If user is on auth screens, redirect to onboarding or home
+      if (isAuthRoute) {
+        // Skip auth screens, go to onboarding if not done, otherwise home
+        return onboardingDone ? '/home' : '/onboarding/language';
       }
 
-      // 🧭 Authenticated but onboarding not completed
-      if (isAuth && !onboardingDone) {
-        debugPrint('Router: User authenticated but onboarding not complete, redirecting to onboarding');
+      // 🧭 Onboarding not completed - redirect to onboarding
+      if (!onboardingDone) {
         return isOnboardingRoute ? null : '/onboarding/language';
       }
 
-      // ✅ Authenticated & onboarding completed
-      if (isAuth && onboardingDone) {
-        // If user is on auth, onboarding, or splash screens, navigate to home
-        if (isAuthRoute || isOnboardingRoute || isSplash) {
+      // ✅ Onboarding completed - allow access to home and other screens
+      if (onboardingDone) {
+        // If user is on splash or onboarding screens, navigate to home
+        if (isSplash || isOnboardingRoute) {
           return '/home';
         }
         // If already on home screen or other valid locations, don't redirect

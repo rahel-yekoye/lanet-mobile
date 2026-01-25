@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lanet_mobile/models/fidel_model.dart';
+import 'package:lanet_mobile/services/alphabet_audio_service.dart';
 
 class FidelTile extends StatelessWidget {
   final FidelModel fidel;
@@ -15,11 +16,26 @@ class FidelTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final audioService = AlphabetAudioService();
+    
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
+        onTap: () async {
+          // Play audio when alphabet is clicked - this is the primary action
+          final played = await audioService.playAlphabetAudio(fidel.character);
+          
+          // Only navigate after audio has started playing (or if audio failed)
+          // This ensures user hears the sound before navigation
+          if (played) {
+            // Wait for audio to start playing before navigating
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+          
+          // Then execute the original onTap callback (navigation)
+          onTap();
+        },
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),

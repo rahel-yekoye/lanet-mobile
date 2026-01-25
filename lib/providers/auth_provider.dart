@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../services/supabase_service.dart';
+import '../services/onboarding_service.dart';
 import '../models/user_model.dart' as app_model;
 
 class AuthProvider with ChangeNotifier {
@@ -25,22 +25,26 @@ class AuthProvider with ChangeNotifier {
   app_model.User? get userModel => _userModel;
 
   /// ✅ single source of truth for onboarding
+  /// Now checks local storage (OnboardingService) instead of requiring authentication
   bool get onboardingCompleted {
     if (_localOnboardingCompleted) return true;
     
+    // Check local storage first (works without authentication)
+    // This is checked synchronously, but OnboardingService is async
+    // We'll check it in checkAuthStatus instead
+    
     if (_userData == null) return false;
 
+    // Check if essential onboarding data exists in userData
+    final hasLanguage = _userData?['language'] != null && _userData!['language'].toString().isNotEmpty;
+    final hasLevel = _userData?['level'] != null && _userData!['level'].toString().isNotEmpty;
+    
     // Accept backend variations: snake_case or camelCase
     final snake = _userData?['onboarding_completed'];
     final camel = _userData?['onboardingCompleted'];
     final alt = _userData?['onboardingComplete'];
-    
-    // Check if essential onboarding data exists
-    final hasLanguage = _userData?['language'] != null && _userData!['language'].toString().isNotEmpty;
-    final hasLevel = _userData?['level'] != null && _userData!['level'].toString().isNotEmpty;
-    
+
     // STRICT CHECK: User must have at least language and level selected to be considered onboarded
-    // if the explicit flag is missing.
     final hasEssentialData = hasLanguage && hasLevel;
 
     return (snake == true) || (camel == true) || (alt == true) || hasEssentialData;
@@ -62,48 +66,59 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check Supabase auth session
-      final session = SupabaseService.client.auth.currentSession;
-      if (session?.user != null) {
-        // User is authenticated with Supabase
-        _isAuthenticated = true;
-        _authToken = session!.accessToken;
-        
-        // Fetch user data
-        final userData = await SupabaseService.fetchUserData();
-        if (userData != null) {
-          _userData = userData;
-          try {
-            _userModel = app_model.User.fromJson(userData);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
-        } else {
-          // Create minimal user data if not found
-          _userData = {
-            'id': session.user.id,
-            'name': session.user.userMetadata?['full_name'] ?? session.user.email?.split('@')[0] ?? '',
-            'email': session.user.email ?? '',
-            'xp': 0,
-            'level': 1,
-            'streak': 0,
-            'lastActiveDate': DateTime.now().toIso8601String(),
-            'dailyGoal': 100,
-            'dailyXpEarned': 0,
-            'settings': {},
-          };
-          try {
-            _userModel = app_model.User.fromJson(_userData!);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
-        }
-      } else {
-        await _clearAuthState();
+      // Authentication bypassed - always set as authenticated with guest user data
+      _isAuthenticated = true;
+      _authToken = null; // No token needed for guest access
+      
+      // Check local onboarding data from OnboardingService
+      final onboardingSelections = await OnboardingService.getSelections();
+      final onboardingDone = await OnboardingService.isCompleted();
+      
+      // Create guest user data with onboarding info from local storage
+      _userData = {
+        'id': 'guest_user',
+        'name': onboardingSelections['name'] ?? 'Guest',
+        'email': onboardingSelections['email'] ?? '',
+        'xp': 0,
+        'level': int.tryParse(onboardingSelections['level'] ?? '1') ?? 1,
+        'streak': 0,
+        'lastActiveDate': DateTime.now().toIso8601String(),
+        'dailyGoal': int.tryParse(onboardingSelections['goal'] ?? '100') ?? 100,
+        'dailyXpEarned': 0,
+        'settings': {},
+        'language': onboardingSelections['language'] ?? '',
+        'onboarding_completed': onboardingDone || 
+            ((onboardingSelections['language'] ?? '').isNotEmpty && 
+             (onboardingSelections['level'] ?? '').isNotEmpty),
+      };
+      
+      // Update local onboarding flag if completed in storage
+      final isCompleted = _userData!['onboarding_completed'] as bool?;
+      if (onboardingDone || (isCompleted == true)) {
+        _localOnboardingCompleted = true;
+      }
+      
+      try {
+        _userModel = app_model.User.fromJson(_userData!);
+      } catch (e) {
+        debugPrint('Error creating user model: $e');
       }
     } catch (e) {
       debugPrint('Error checking auth status: $e');
-      await _clearAuthState();
+      // Even on error, set as authenticated for guest access
+      _isAuthenticated = true;
+      _userData = {
+        'id': 'guest_user',
+        'name': 'Guest',
+        'email': '',
+        'xp': 0,
+        'level': 1,
+        'streak': 0,
+        'lastActiveDate': DateTime.now().toIso8601String(),
+        'dailyGoal': 100,
+        'dailyXpEarned': 0,
+        'settings': {},
+      };
     }
 
     _isLoading = false;
@@ -171,48 +186,49 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check Supabase auth session
-      final session = SupabaseService.client.auth.currentSession;
-      if (session?.user != null) {
-        // User is authenticated with Supabase
-        _isAuthenticated = true;
-        _authToken = session!.accessToken;
-        
-        // Fetch user data
-        final userData = await SupabaseService.fetchUserData();
-        if (userData != null) {
-          _userData = userData;
-          try {
-            _userModel = app_model.User.fromJson(userData);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
-        } else {
-          // Create minimal user data if not found
-          _userData = {
-            'id': session.user.id,
-            'name': session.user.userMetadata?['full_name'] ?? session.user.email?.split('@')[0] ?? '',
-            'email': session.user.email ?? '',
-            'xp': 0,
-            'level': 1,
-            'streak': 0,
-            'lastActiveDate': DateTime.now().toIso8601String(),
-            'dailyGoal': 100,
-            'dailyXpEarned': 0,
-            'settings': {},
-          };
-          try {
-            _userModel = app_model.User.fromJson(_userData!);
-          } catch (e) {
-            debugPrint('Error creating user model: $e');
-          }
-        }
-      } else {
-        await _clearAuthState();
+      // Authentication bypassed - always set as authenticated with guest user data
+      _isAuthenticated = true;
+      _authToken = null; // No token needed for guest access
+      
+      // Keep existing user data if available, otherwise use guest data
+      if (_userData == null) {
+        _userData = {
+          'id': 'guest_user',
+          'name': 'Guest',
+          'email': '',
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+      }
+      
+      try {
+        _userModel = app_model.User.fromJson(_userData!);
+      } catch (e) {
+        debugPrint('Error creating user model: $e');
       }
     } catch (e) {
       debugPrint('Error updating auth state: $e');
-      await _clearAuthState();
+      // Even on error, maintain guest access
+      _isAuthenticated = true;
+      if (_userData == null) {
+        _userData = {
+          'id': 'guest_user',
+          'name': 'Guest',
+          'email': '',
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+      }
     }
 
     _isLoading = false;
@@ -246,13 +262,22 @@ class AuthProvider with ChangeNotifier {
       _localOnboardingCompleted = true;
       notifyListeners();
 
-      await AuthService.updateProfile(
+      // Save to local storage (no authentication required)
+      await OnboardingService.saveSelections(
         language: language,
         level: level,
         reason: reason,
-        dailyGoal: dailyGoal,
-        onboardingCompleted: true,
+        goal: dailyGoal.toString(),
       );
+      await OnboardingService.completeOnboarding();
+
+      // Update user data with onboarding info
+      if (_userData != null) {
+        _userData!['language'] = language;
+        _userData!['level'] = level;
+        _userData!['onboarding_completed'] = true;
+        _userData!['dailyGoal'] = dailyGoal;
+      }
 
       await _updateAuthState();
     } catch (e) {
@@ -260,7 +285,7 @@ class AuthProvider with ChangeNotifier {
       _localOnboardingCompleted = false;
       notifyListeners();
       debugPrint('Onboarding completion error: $e');
-      rethrow;
+      // Don't rethrow - allow onboarding to complete even if there's an error
     }
   }
 
