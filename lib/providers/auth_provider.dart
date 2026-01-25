@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/supabase_service.dart';
 import '../services/progress_service.dart';
+import '../services/onboarding_service.dart';
 import '../models/user_model.dart' as app_model;
 import '../config/supabase_config.dart';
 
@@ -27,9 +28,9 @@ class AuthProvider with ChangeNotifier {
   app_model.User? get userModel => _userModel;
 
   /// ✅ single source of truth for onboarding
+  /// Now checks local storage (OnboardingService) instead of requiring authentication
   bool get onboardingCompleted {
     if (_localOnboardingCompleted) return true;
-
     if (_userData == null) return false;
 
     // Accept backend variations: snake_case or camelCase
@@ -38,7 +39,7 @@ class AuthProvider with ChangeNotifier {
     final alt = _userData?['onboardingComplete'];
 
     // Explicit flags (set at the very end of onboarding)
-    if ((snake == true) || (camel == true) || (alt == true)) return true;
+    if (snake == true || camel == true || alt == true) return true;
 
     // Legacy users with XP are considered done
     final hasXP = (_userData?['xp'] is num) && (_userData!['xp'] as num) > 0;
@@ -92,11 +93,9 @@ class AuthProvider with ChangeNotifier {
           debugPrint(
               'AuthProvider.checkAuthStatus: User is authenticated, fetching user data');
 
-          // User is authenticated with Supabase
           _isAuthenticated = true;
           _authToken = session!.accessToken;
 
-          // Fetch user data
           final userData = await SupabaseService.fetchUserData();
           if (userData != null) {
             _userData = userData;
@@ -131,7 +130,6 @@ class AuthProvider with ChangeNotifier {
               }
             } catch (_) {}
           } else {
-            // Create minimal user data if not found
             _userData = {
               'id': session.user.id,
               'name': session.user.userMetadata?['full_name'] ??
@@ -162,7 +160,6 @@ class AuthProvider with ChangeNotifier {
       debugPrint('Error checking auth status: $e');
       debugPrint('Error type: ${e.runtimeType}');
 
-      // Check if it's a network error
       final errorMsg = e.toString().toLowerCase();
       if (errorMsg.contains('network') ||
           errorMsg.contains('fetch') ||
@@ -173,8 +170,6 @@ class AuthProvider with ChangeNotifier {
           errorMsg.contains('certificate')) {
         debugPrint(
             'Network-related error in auth status check, keeping current state');
-        // For network errors, we might want to keep the current state instead of clearing it
-        // This allows offline usage if user was previously logged in
       } else {
         await _clearAuthState();
       }
@@ -396,13 +391,22 @@ class AuthProvider with ChangeNotifier {
       _userData = updated;
       notifyListeners();
 
-      await AuthService.updateProfile(
+      // Save to local storage (no authentication required)
+      await OnboardingService.saveSelections(
         language: language,
         level: level,
         reason: reason,
-        dailyGoal: dailyGoal,
-        onboardingCompleted: true,
+        goal: dailyGoal.toString(),
       );
+      await OnboardingService.completeOnboarding();
+
+      // Update user data with onboarding info
+      if (_userData != null) {
+        _userData!['language'] = language;
+        _userData!['level'] = level;
+        _userData!['onboarding_completed'] = true;
+        _userData!['dailyGoal'] = dailyGoal;
+      }
 
       // 3. Silent Sync: Fetch fresh data without triggering global isLoading
       // This ensures we have the server's truth without flashing loading screens

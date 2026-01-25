@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:lanet_mobile/models/fidel_model.dart';
 import 'package:lanet_mobile/widgets/cultural_border.dart';
-
+import 'package:lanet_mobile/services/alphabet_audio_service.dart';
 import 'package:lanet_mobile/widgets/speech_practice.dart';
 import 'package:lanet_mobile/services/srs_service.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,13 +19,12 @@ class LetterDetailScreen extends StatefulWidget {
 class _LetterDetailScreenState extends State<LetterDetailScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final SRSService _srs = SRSService();
+  final AlphabetAudioService _alphabetAudioService = AlphabetAudioService();
 
   Future<void> _playAudio() async {
-    if (widget.fidel.audioFile.isNotEmpty) {
-      await _audioPlayer
-          .play(AssetSource('assets/audio/${widget.fidel.audioFile}'));
-    } else {
-      // Optional: fallback sound or message
+    // Use character-based audio mapping instead of audioFile from CSV
+    final played = await _alphabetAudioService.playAlphabetAudio(widget.fidel.character);
+    if (!played && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Audio not available yet')),
       );

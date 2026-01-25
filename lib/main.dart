@@ -157,13 +157,14 @@ GoRouter _router(AuthProvider authProvider) {
     redirect: (context, state) {
       final location = state.uri.path;
 
-      final isAuth = authProvider.isAuthenticated;
       final onboardingDone = authProvider.onboardingCompleted;
       final isLoading = authProvider.isLoading;
 
       final isAuthRoute = location == '/login' || location == '/register';
       final isOnboardingRoute = location.startsWith('/onboarding');
       final isSplash = location == '/splash';
+
+      final isAuth = authProvider.isAuthenticated;
 
       // ⏳ Still determining auth state
       if (isLoading) {
@@ -208,10 +209,10 @@ GoRouter _router(AuthProvider authProvider) {
         }
       }
 
-      // ✅ Authenticated & onboarding completed
-      if (isAuth && onboardingDone) {
-        // If user is on auth, onboarding, or splash screens, navigate to home
-        if (isAuthRoute || isOnboardingRoute || isSplash) {
+      // ✅ Onboarding completed - allow access to home and other screens
+      if (onboardingDone) {
+        // If user is on splash or onboarding screens, navigate to home
+        if (isSplash || isOnboardingRoute) {
           return '/home';
         }
         // If already on home screen or other valid locations, don't redirect
