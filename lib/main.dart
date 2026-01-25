@@ -9,6 +9,7 @@ import 'providers/lesson_provider.dart';
 import 'providers/fidel_provider.dart';
 import 'providers/auth_provider.dart';
 import 'services/dataset_service.dart';
+import 'services/session_manager.dart';
 
 import 'screens/home_screen.dart';
 
@@ -211,8 +212,23 @@ GoRouter _router(AuthProvider authProvider) {
 
       // ✅ Onboarding completed - allow access to home and other screens
       if (onboardingDone) {
-        // If user is on splash or onboarding screens, navigate to home
+        // If user is on splash or onboarding screens, check for session restoration
         if (isSplash || isOnboardingRoute) {
+          // Try to restore where user left off
+          final sessionManager = SessionManager();
+          final session = await sessionManager.restoreSession();
+          final isRecent = await sessionManager.isRecentSession();
+          
+          if (session != null && isRecent) {
+            final sessionCategory = session['category'] as String?;
+            final sessionScreen = session['screen'] as String?;
+            
+            // If user was in a lesson, we can't directly navigate there from router
+            // So we'll go to home and let home screen handle the navigation
+            // For now, just go to home - the home screen can check session and navigate
+            return '/home';
+          }
+          
           return '/home';
         }
         // If already on home screen or other valid locations, don't redirect

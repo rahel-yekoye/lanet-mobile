@@ -1,6 +1,5 @@
 // lib/utils/network_utils.dart
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NetworkUtils {
   /// Test basic internet connectivity

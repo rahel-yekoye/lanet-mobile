@@ -151,7 +151,7 @@ class _LessonScreenState extends State<LessonScreen> {
         onContinue: nextCategory != null
             ? () {
                 if (!mounted) return;
-                final nextPhrases = lp.phrasesFor(nextCategory!);
+                final nextPhrases = lp.phrasesFor(nextCategory);
                 if (nextPhrases.isNotEmpty) {
                   Navigator.pushReplacement(
                     context,
@@ -232,7 +232,7 @@ class _LessonScreenState extends State<LessonScreen> {
                   child: LinearProgressIndicator(
                     value: (_currentIndex + 1) / _categoryPhrases.length,
                     backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
                     minHeight: 6,
                   ),
                 ),

@@ -102,9 +102,9 @@ class ProfileScreen extends StatelessWidget {
       );
     }
 
-    Future<void> _chooseLanguage(BuildContext context) async {
+    Future<void> chooseLanguage(BuildContext context) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      final options = const ['Amharic', 'Tigrinya', 'Oromo'];
+      const options = ['Amharic', 'Tigrinya', 'Oromo'];
       await showModalBottomSheet(
         context: context,
         shape: const RoundedRectangleBorder(
@@ -142,9 +142,9 @@ class ProfileScreen extends StatelessWidget {
       );
     }
 
-    Future<void> _chooseLevel(BuildContext context) async {
+    Future<void> chooseLevel(BuildContext context) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      final options = const ['Beginner', 'Intermediate', 'Advanced'];
+      const options = ['Beginner', 'Intermediate', 'Advanced'];
       await showModalBottomSheet(
         context: context,
         shape: const RoundedRectangleBorder(
@@ -179,9 +179,9 @@ class ProfileScreen extends StatelessWidget {
       );
     }
 
-    Future<void> _chooseDailyGoal(BuildContext context) async {
+    Future<void> chooseDailyGoal(BuildContext context) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      final options = const [
+      const options = [
         '5 minutes',
         '10 minutes',
         '15 minutes',
@@ -335,29 +335,29 @@ class ProfileScreen extends StatelessWidget {
             title: 'Change Language',
             subtitle: 'Update your learning language',
             icon: Icons.language,
-            onTap: () => _chooseLanguage(context),
+            onTap: () => chooseLanguage(context),
           ),
           actionTile(
             title: 'Change Level',
             subtitle: 'Adjust your experience level',
             icon: Icons.school,
-            onTap: () => _chooseLevel(context),
+            onTap: () => chooseLevel(context),
           ),
           actionTile(
             title: 'Set Daily Goal',
             subtitle: 'Choose your daily study time',
             icon: Icons.timelapse,
-            onTap: () => _chooseDailyGoal(context),
+            onTap: () => chooseDailyGoal(context),
           ),
           const SizedBox(height: 8),
           Card(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
+            child: const Padding(
+              padding: EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Achievements',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

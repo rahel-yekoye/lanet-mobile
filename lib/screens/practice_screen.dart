@@ -962,7 +962,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                               : 0.0,
                           backgroundColor: Colors.grey.shade200,
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.teal),
+                              const AlwaysStoppedAnimation<Color>(Colors.teal),
                           minHeight: 8,
                         ),
                         const SizedBox(height: 6),

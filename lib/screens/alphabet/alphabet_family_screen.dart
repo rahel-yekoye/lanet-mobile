@@ -175,23 +175,8 @@ class _AlphabetFamilyScreenState extends State<AlphabetFamilyScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () async {
-          // Play audio when alphabet is clicked - this is the primary action
-          final played = await _alphabetAudioService.playAlphabetAudio(fidel.character);
-          
-          // Only navigate after audio has started playing (or if audio failed)
-          // This ensures user hears the sound before navigation
-          if (played) {
-            // Wait for audio to start playing before navigating
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          
-          // Then navigate to detail screen
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => LetterDetailScreen(fidel: fidel)),
-            );
-          }
+          // Play audio when alphabet is clicked - ONLY audio, no navigation
+          await _alphabetAudioService.playAlphabetAudio(fidel.character);
         },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

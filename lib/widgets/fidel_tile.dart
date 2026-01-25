@@ -23,17 +23,10 @@ class FidelTile extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () async {
-          // Play audio when alphabet is clicked - this is the primary action
-          final played = await audioService.playAlphabetAudio(fidel.character);
-          
-          // Only navigate after audio has started playing (or if audio failed)
-          // This ensures user hears the sound before navigation
-          if (played) {
-            // Wait for audio to start playing before navigating
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          
-          // Then execute the original onTap callback (navigation)
+          // Play audio when alphabet is clicked
+          await audioService.playAlphabetAudio(fidel.character);
+          // Then execute the original onTap callback (navigation) if provided
+          // This allows family tiles to navigate while individual letters only play audio
           onTap();
         },
         child: Container(

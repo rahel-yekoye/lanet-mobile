@@ -8,6 +8,7 @@ import '../services/session_manager.dart';
 import '../services/onboarding_service.dart';
 
 import '../providers/lesson_provider.dart';
+import '../models/phrase.dart';
 import 'lesson_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadUserLanguage();
+    _restoreSession();
   }
   
   Future<void> _loadUserLanguage() async {
@@ -30,6 +32,56 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _userLanguage = language?.toLowerCase();
     });
+  }
+
+  Future<void> _restoreSession() async {
+    // Wait a bit for the screen to build first
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    if (!mounted) return;
+    
+    final sessionManager = SessionManager();
+    final session = await sessionManager.restoreSession();
+    final isRecent = await sessionManager.isRecentSession();
+    
+    if (session != null && isRecent && mounted) {
+      final sessionCategory = session['category'] as String?;
+      final sessionScreen = session['screen'] as String?;
+      final add = session['additionalData'] as Map<String, dynamic>?;
+      
+      // If user was in a lesson, navigate back to it
+      if (sessionScreen == 'lesson' && sessionCategory != null && add != null) {
+        final lp = Provider.of<LessonProvider>(context, listen: false);
+        final phrases = lp.phrasesFor(sessionCategory);
+        if (phrases.isNotEmpty) {
+          final lessonIndex = add['lesson_index'] as int? ?? 0;
+          final english = add['english'] as String?;
+          
+          // Find the phrase by index or english text
+          Phrase? targetPhrase;
+          if (lessonIndex >= 0 && lessonIndex < phrases.length) {
+            targetPhrase = phrases[lessonIndex];
+          } else if (english != null) {
+            targetPhrase = phrases.firstWhere(
+              (p) => p.english == english,
+              orElse: () => phrases[0],
+            );
+          } else {
+            targetPhrase = phrases[0];
+          }
+          
+          if (targetPhrase != null && mounted) {
+            // Navigate to the lesson screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LessonScreen(phrase: targetPhrase),
+              ),
+            );
+          }
+        }
+      }
+    }
   }
   
   @override

@@ -50,7 +50,7 @@ class User extends Equatable {
         settings = settings ?? {};
 
   factory User.fromJson(Map<String, dynamic> json) {
-    int _asInt(dynamic v) {
+    int asInt(dynamic v) {
       if (v is int) return v;
       if (v is double) return v.toInt();
       if (v is String) {
@@ -62,7 +62,7 @@ class User extends Equatable {
       return 0;
     }
  
-    int _parseLevel(dynamic v) {
+    int parseLevel(dynamic v) {
       if (v is int) return v == 0 ? 1 : v;
       if (v is double) {
         final i = v.toInt();
@@ -79,7 +79,7 @@ class User extends Equatable {
       return 1;
     }
  
-    DateTime? _parseDate(dynamic v) {
+    DateTime? parseDate(dynamic v) {
       if (v is DateTime) return v;
       if (v is String) return DateTime.tryParse(v);
       return null;
@@ -87,16 +87,16 @@ class User extends Equatable {
  
     final dailyGoalRaw = json['dailyGoal'] ?? json['daily_goal'];
     final dailyXpRaw = json['dailyXpEarned'] ?? json['daily_xp_earned'];
-    final dailyGoalParsed = dailyGoalRaw == null ? 100 : _asInt(dailyGoalRaw);
-    final dailyXpParsed = dailyXpRaw == null ? 0 : _asInt(dailyXpRaw);
+    final dailyGoalParsed = dailyGoalRaw == null ? 100 : asInt(dailyGoalRaw);
+    final dailyXpParsed = dailyXpRaw == null ? 0 : asInt(dailyXpRaw);
     return User(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       avatarUrl: json['avatarUrl']?.toString(),
-      xp: _asInt(json['xp']),
-      level: _parseLevel(json['level']),
-      streak: _asInt(json['streak']),
-      lastActiveDate: _parseDate(json['lastActiveDate']) ?? DateTime.now(),
+      xp: asInt(json['xp']),
+      level: parseLevel(json['level']),
+      streak: asInt(json['streak']),
+      lastActiveDate: parseDate(json['lastActiveDate']) ?? DateTime.now(),
       dailyGoal: dailyGoalParsed,
       dailyXpEarned: dailyXpParsed,
       settings:

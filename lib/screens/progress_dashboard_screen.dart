@@ -83,7 +83,6 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
           table: 'users',
           callback: (payload) {
             final rec = payload.newRecord;
-            if (rec == null) return;
             final rid = rec['id'];
             if (rid != userId) return;
             final sDaily = rec['daily_xp_earned'];

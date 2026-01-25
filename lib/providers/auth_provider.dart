@@ -400,12 +400,32 @@ class AuthProvider with ChangeNotifier {
       );
       await OnboardingService.completeOnboarding();
 
+      // CRITICAL: Save to database via AuthService
+      // This ensures the preferences are persisted to Supabase
+      if (_isAuthenticated) {
+        try {
+          await AuthService.updateProfile(
+            language: language,
+            level: level,
+            reason: reason,
+            dailyGoal: dailyGoal,
+            onboardingCompleted: true,
+          );
+          debugPrint('Onboarding preferences saved to database successfully');
+        } catch (e) {
+          debugPrint('Error saving onboarding preferences to database: $e');
+          // Continue even if database save fails - local state is already updated
+        }
+      }
+
       // Update user data with onboarding info
       if (_userData != null) {
         _userData!['language'] = language;
         _userData!['level'] = level;
+        _userData!['reason'] = reason;
         _userData!['onboarding_completed'] = true;
         _userData!['dailyGoal'] = dailyGoal;
+        _userData!['daily_goal'] = dailyGoal;
       }
 
       // 3. Silent Sync: Fetch fresh data without triggering global isLoading
