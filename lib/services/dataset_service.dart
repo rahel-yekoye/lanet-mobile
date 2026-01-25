@@ -30,6 +30,9 @@ class DatasetService {
   Future<Map<String, List<Phrase>>> loadByCategory(
     String assetPath,
   ) async {
+    if (assetPath.toLowerCase().endsWith('.csv')) {
+      return _loadByCategoryCsv(assetPath);
+    }
     final raw = await rootBundle.loadString(assetPath);
     final Map<String, dynamic> data = json.decode(raw);
 
@@ -47,6 +50,34 @@ class DatasetService {
         }
       }
     });
+    return out;
+  }
+
+  Future<Map<String, List<Phrase>>> _loadByCategoryCsv(String assetPath) async {
+    final raw = await rootBundle.loadString(assetPath);
+    final lines = const LineSplitter().convert(raw);
+    if (lines.isEmpty) return {};
+    final headers = lines.first.split(',').map((h) => h.trim()).toList();
+    final idxCategory = headers.indexOf('Category');
+    final idxEnglish = headers.indexOf('English');
+    final idxAmharic = headers.indexOf('Amharic');
+    final idxOromo = headers.indexOf('Oromo');
+    final idxTigrinya = headers.indexOf('Tigrinya');
+    final Map<String, List<Phrase>> out = {};
+    for (int i = 1; i < lines.length; i++) {
+      final values = lines[i].split(',').map((v) => v.trim()).toList();
+      if (values.length < headers.length) continue;
+      final category = values[idxCategory];
+      final map = {
+        'English': values[idxEnglish],
+        'Amharic': values[idxAmharic],
+        'Oromo': values[idxOromo],
+        'Tigrinya': values[idxTigrinya],
+      };
+      final phrase = Phrase.fromMap(map, category);
+      out.putIfAbsent(category, () => []);
+      out[category]!.add(phrase);
+    }
     return out;
   }
 

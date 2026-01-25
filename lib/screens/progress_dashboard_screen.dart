@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/progress_service.dart';
 import '../widgets/pattern_background.dart';
+import 'package:go_router/go_router.dart';
 
 class ProgressDashboardScreen extends StatefulWidget {
   const ProgressDashboardScreen({super.key});
@@ -55,8 +56,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black87),
             onPressed: () {
-              // Navigate explicitly to home screen
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              // Navigate back to home using router to ensure correct behavior
+              GoRouter.of(context).go('/home');
             },
           ),
         ),

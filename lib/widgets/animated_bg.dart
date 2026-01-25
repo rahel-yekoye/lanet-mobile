@@ -54,11 +54,11 @@ Widget build(BuildContext context) {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.5),
+        color: color.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(200),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             blurRadius: 60, // correct usage
           ),
         ],

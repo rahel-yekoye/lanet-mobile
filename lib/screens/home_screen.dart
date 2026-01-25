@@ -5,9 +5,10 @@ import 'package:lanet_mobile/screens/tutor_screen.dart';
 import 'package:lanet_mobile/widgets/pattern_background.dart';
 import 'package:provider/provider.dart';
 import '../services/session_manager.dart';
+import '../services/onboarding_service.dart';
 
 import '../providers/lesson_provider.dart';
-import 'category_screen.dart';
+import 'lesson_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,10 +18,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String? _userLanguage;
   @override
   void initState() {
     super.initState();
-    // No need for session checking delay - load immediately
+    _loadUserLanguage();
+  }
+  
+  Future<void> _loadUserLanguage() async {
+    final language = await OnboardingService.getValue(OnboardingService.keyLanguage);
+    setState(() {
+      _userLanguage = language?.toLowerCase();
+    });
   }
   
   @override
@@ -56,15 +65,24 @@ class _HomeScreenState extends State<HomeScreen> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            /// 🔤 ALPHABET ENTRY (FIXED AT TOP)
-            _AlphabetEntryCard(context),
-
-            const SizedBox(height: 16),
-
-            /// 🤖 TUTOR ENTRY
-            _TutorEntryCard(context),
-
-            const SizedBox(height: 16),
+            // Optional: Alphabet entry only for Amharic or Tigrinya learners
+            if (_userLanguage == 'amharic' || _userLanguage == 'tigrinya' || _userLanguage == 'tigrigna')
+              ListTile(
+                leading: const Icon(Icons.translate, color: Colors.deepOrange),
+                title: const Text('Learn the Alphabet'),
+                subtitle: const Text('Sounds • Letters • Pronunciation'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AlphabetOverviewScreen(),
+                    ),
+                  );
+                },
+              ),
+            
+            const SizedBox(height: 8),
 
             /// 📚 PHRASE CATEGORIES
             ...lp.categories.map((cat) {
@@ -74,17 +92,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 subtitle: Text('$count phrases'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
-                  // Save session before navigating
                   final sessionManager = SessionManager();
+                  final phrases = lp.phrasesFor(cat);
+                  if (phrases.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('No lessons in $cat yet')),
+                    );
+                    return;
+                  }
+                  // Try resuming from saved index
+                  int idx = 0;
+                  final session = await sessionManager.restoreSession();
+                  if (session != null) {
+                    final category = session['category'] as String?;
+                    final screen = session['screen'] as String?;
+                    final add = session['additionalData'] as Map<String, dynamic>?;
+                    if (category == cat && screen == 'lesson' && add != null) {
+                      final saved = add['lesson_index'];
+                      if (saved is int && saved >= 0 && saved < phrases.length) {
+                        idx = saved;
+                      }
+                    }
+                  }
                   await sessionManager.saveSession(
                     currentCategory: cat,
-                    currentScreen: 'category_selection',
+                    currentScreen: 'lesson',
+                    additionalData: {'lesson_index': idx, 'english': phrases[idx].english},
                   );
-                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CategoryScreen(category: cat),
+                      builder: (_) => LessonScreen(phrase: phrases[idx]),
                     ),
                   );
                 },
@@ -92,155 +130,17 @@ class _HomeScreenState extends State<HomeScreen> {
             }),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// 🤖 Tutor Card Widget
-class _TutorEntryCard extends StatelessWidget {
-  const _TutorEntryCard(this.context);
-
-  final BuildContext context;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const TutorScreen(),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blue.shade200),
-        ),
-        child: Row(
-          children: [
-            /// Icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                shape: BoxShape.circle,
+        floatingActionButton: FloatingActionButton(
+          tooltip: 'AI Tutor',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const TutorScreen(),
               ),
-              child: const Icon(
-                Icons.chat_bubble_outline,
-                size: 28,
-                color: Colors.blue,
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            /// Text
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'AI Amharic Tutor',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Ask questions • Practice conversation',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Icon(Icons.chevron_right),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 🔤 Alphabet Card Widget
-class _AlphabetEntryCard extends StatelessWidget {
-  const _AlphabetEntryCard(this.context);
-
-  final BuildContext context;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const AlphabetOverviewScreen(),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.orange.shade200),
-        ),
-        child: Row(
-          children: [
-            /// Icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.translate,
-                size: 28,
-                color: Colors.deepOrange,
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            /// Text
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Learn the Alphabet',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Sounds • Letters • Pronunciation',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Icon(Icons.chevron_right),
-          ],
+            );
+          },
+          child: const Icon(Icons.chat),
         ),
       ),
     );

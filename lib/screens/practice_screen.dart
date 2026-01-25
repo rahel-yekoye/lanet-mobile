@@ -20,9 +20,10 @@ enum ExerciseType {
 class PracticeScreen extends StatefulWidget {
   final String category;
   final List<Phrase> phrases;
+  final String? targetLanguage;
   
   const PracticeScreen(
-      {super.key, required this.category, required this.phrases});
+      {super.key, required this.category, required this.phrases, this.targetLanguage});
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -62,6 +63,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
   Set<int> matchSolved = {};
   int? matchSelL;
   int? matchSelR;
+  bool _showResultBar = false;
+  String _resultMessage = '';
+  int _lastAwardedXP = 0;
+  List<Phrase> history = [];
 
   @override
   void initState() {
@@ -114,6 +119,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
       pool = List.from(widget.phrases);
       pool.shuffle();
     }
+    if (current != null) {
+      history.add(current!);
+    }
     usedHint = false;
     hintLevel = 0;
     questionShownAt = DateTime.now();
@@ -149,8 +157,14 @@ class _PracticeScreenState extends State<PracticeScreen> {
                         ? ExerciseType.tapComplete
                         : ExerciseType.matchPairs;
 
-    // For variety, randomly pick one target language per question
-    currentTargetLang = ['amharic', 'oromo', 'tigrinya'][rnd.nextInt(3)];
+    // Set target language from user preference if provided, else random
+    String? pref = widget.targetLanguage?.toLowerCase();
+    if (pref != null) {
+      if (pref.contains('amh')) pref = 'amharic';
+      if (pref.contains('tigr')) pref = 'tigrinya';
+      if (pref.contains('orom')) pref = 'oromo';
+    }
+    currentTargetLang = pref ?? ['amharic', 'oromo', 'tigrinya'][rnd.nextInt(3)];
 
     if (currentExerciseType == ExerciseType.multipleChoice ||
         currentExerciseType == ExerciseType.listening ||
@@ -186,6 +200,68 @@ class _PracticeScreenState extends State<PracticeScreen> {
     setState(() {});
   }
 
+  void _prevQuestion() {
+    if (history.isEmpty) return;
+    final prev = history.removeLast();
+    if (current != null) {
+      pool.add(current!);
+    }
+    usedHint = false;
+    hintLevel = 0;
+    questionShownAt = DateTime.now();
+    bonusTimer?.cancel();
+    bonusCountdown = 10;
+    current = prev;
+    final pick = rnd.nextInt(6);
+    currentExerciseType = pick == 0
+        ? ExerciseType.multipleChoice
+        : pick == 1
+            ? ExerciseType.speech
+            : pick == 2
+                ? ExerciseType.listening
+                : pick == 3
+                    ? ExerciseType.typeAnswer
+                    : pick == 4
+                        ? ExerciseType.tapComplete
+                        : ExerciseType.matchPairs;
+    String? pref = widget.targetLanguage?.toLowerCase();
+    if (pref != null) {
+      if (pref.contains('amh')) pref = 'amharic';
+      if (pref.contains('tigr')) pref = 'tigrinya';
+      if (pref.contains('orom')) pref = 'oromo';
+    }
+    currentTargetLang = pref ?? ['amharic', 'oromo', 'tigrinya'][rnd.nextInt(3)];
+    if (currentExerciseType == ExerciseType.multipleChoice ||
+        currentExerciseType == ExerciseType.listening ||
+        currentExerciseType == ExerciseType.matchPairs) {
+      final allOptions = <String>{};
+      allOptions.add(_valueFor(current!, currentTargetLang!));
+      while (allOptions.length < 4) {
+        final randomPhrase = widget.phrases[rnd.nextInt(widget.phrases.length)];
+        allOptions.add(_valueFor(randomPhrase, currentTargetLang!));
+      }
+      final ops = allOptions.toList();
+      ops.shuffle();
+      choices = ops;
+      correctIndex =
+          ops.indexWhere((o) => o == _valueFor(current!, currentTargetLang!));
+      if (currentExerciseType == ExerciseType.matchPairs) {
+        const pairCount = 4;
+        matchLeft = [];
+        matchRight = [];
+        matchSolved = {};
+        for (int i = 0; i < pairCount; i++) {
+          final p = widget.phrases[rnd.nextInt(widget.phrases.length)];
+          matchLeft.add(p.english);
+          matchRight.add(_valueFor(p, currentTargetLang!));
+        }
+        matchRight.shuffle();
+        matchSelL = null;
+        matchSelR = null;
+      }
+    }
+    setState(() {});
+  }
   void _showHint() {
     if (current == null || currentTargetLang == null) return;
     final t = _valueFor(current!, currentTargetLang!);
@@ -248,18 +324,20 @@ class _PracticeScreenState extends State<PracticeScreen> {
           bonus = 1;
         }
       }
-      await progress.addXP(base + bonus);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(usedHint
-              ? 'Correct ✔️ +$base XP (hint)'
-              : bonus > 0
-                  ? 'Correct ✔️ +$base +$bonus XP (fast)'
-                  : 'Correct ✔️ +$base XP')));
+      _lastAwardedXP = base + bonus;
+      await progress.addXP(_lastAwardedXP);
+      _resultMessage = usedHint
+          ? 'Correct — +$base XP (hint)'
+          : bonus > 0
+              ? 'Correct — +$base +$bonus XP (fast)'
+              : 'Correct — +$base XP';
+      _showResultBar = true;
       hearts = min(maxHearts, hearts + 0); // keep hearts stable on correct
     } else {
       await srs.markWrong(widget.category, current!.english);
       answered++;
-      await progress.addXP(2);
+      _lastAwardedXP = 2;
+      await progress.addXP(_lastAwardedXP);
       hearts = max(0, hearts - 1);
       wrongs.add(current!);
       if (hearts == 0) {
@@ -268,8 +346,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
         await progress.setHeartsRefillAt(when.millisecondsSinceEpoch);
         _startHeartsTimer();
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Wrong ✖️ — will be repeated (+2 XP)')));
+      _resultMessage = 'Wrong — will be repeated (+2 XP)';
+      _showResultBar = true;
       if (hearts == 0) {
         if (mounted) {
           showDialog(
@@ -292,13 +370,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
       }
     }
     await _refreshProgress();
-    // small delay then next
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (pool.isEmpty) {
-      _showSummary();
-      pool = List.from(widget.phrases)..shuffle();
-    }
-    _nextQuestion();
+    setState(() {});
   }
 
   void _startHeartsTimer() {
@@ -810,6 +882,114 @@ class _PracticeScreenState extends State<PracticeScreen> {
                                 onAnswer: _onAnswer,
                               ),
       ),
+      bottomNavigationBar: _showResultBar
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _resultMessage,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        Text('+$_lastAwardedXP XP',
+                            style: const TextStyle(color: Colors.teal)),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      _showResultBar = false;
+                      _resultMessage = '';
+                      _lastAwardedXP = 0;
+                      if (pool.isEmpty) {
+                        _showSummary();
+                        pool = List.from(widget.phrases)..shuffle();
+                      }
+                      _nextQuestion();
+                      setState(() {});
+                    },
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('Continue'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LinearProgressIndicator(
+                          value: dailyGoal > 0
+                              ? (dailyXP / dailyGoal).clamp(0.0, 1.0)
+                              : 0.0,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.teal),
+                          minHeight: 8,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '⭐ $dailyXP / $dailyGoal',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: history.isNotEmpty ? _prevQuestion : null,
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Previous'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _skipQuestion();
+                    },
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('Next'),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 

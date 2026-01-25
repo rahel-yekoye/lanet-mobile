@@ -46,22 +46,21 @@ class SessionManager {
   // Track completed categories for progress
   Future<void> markCategoryCompleted(String category) async {
     final prefs = await SharedPreferences.getInstance();
-    final completed = getCompletedCategories();
+    final completed = await getCompletedCategories();
     if (!completed.contains(category)) {
       completed.add(category);
       await prefs.setStringList(_completedCategoriesKey, completed);
     }
   }
   
-  List<String> getCompletedCategories() {
-    // This would typically come from shared preferences
-    // For now, we'll implement a simple version
-    return [];
+  Future<List<String>> getCompletedCategories() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_completedCategoriesKey) ?? <String>[];
   }
   
   // Get personalized recommendations based on progress
   Future<List<String>> getRecommendedCategories() async {
-    final completed = getCompletedCategories();
+    final completed = await getCompletedCategories();
     // Return categories that haven't been completed yet
     // This is a simplified version - you'd want more sophisticated logic
     return ['basics', 'family', 'food', 'travel']

@@ -110,7 +110,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           _audioPath = '${directory.path}/recording_$timestamp.m4a';
         } catch (e) {
-          print('Warning: Could not get temporary directory: $e');
+          debugPrint('Warning: Could not get temporary directory: $e');
           // Generate a fallback path
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           _audioPath = 'recording_$timestamp.m4a';
@@ -133,7 +133,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
         _result = null;
       });
     } catch (e) {
-      print('Error starting recording: $e');
+      debugPrint('Error starting recording: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -162,7 +162,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
       // Process the audio
       await _processAudio();
     } catch (e) {
-      print('Error stopping recording: $e');
+      debugPrint('Error stopping recording: $e');
       setState(() {
         _isRecording = false;
         _isProcessing = false;
@@ -194,7 +194,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
           RegExp(r'[\u1200-\u137F]').hasMatch(widget.targetText);
       final languageCode = _languageOverride ?? (hasEthiopic ? 'amh' : 'orm');
 
-      print('Detected language for "${widget.targetText}": $languageCode');
+      debugPrint('Detected language for "${widget.targetText}": $languageCode');
 
       // Transcribe audio - handle web and mobile differently
       String? transcribed;
@@ -231,7 +231,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
       // Call callback
       widget.onResult(result.isCorrect);
     } catch (e) {
-      print('Error processing audio: $e');
+      debugPrint('Error processing audio: $e');
       setState(() {
         _isProcessing = false;
       });
@@ -401,7 +401,7 @@ class _SpeechPracticeState extends State<SpeechPractice>
                                   : _isProcessing
                                       ? Colors.grey
                                       : Colors.teal)
-                              .withOpacity(0.4),
+                              .withValues(alpha: 0.4),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),

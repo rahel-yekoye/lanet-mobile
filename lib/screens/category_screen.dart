@@ -71,6 +71,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     builder: (_) => PracticeScreen(
                       category: widget.category,
                       phrases: phrases,
+                      targetLanguage: userLanguage?.toLowerCase(),
                     ),
                   ),
                 );

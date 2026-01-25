@@ -40,6 +40,14 @@ class CulturalScaffold extends StatelessWidget {
                     width: double.infinity,
                     height: 200,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/images/illustration/theboy.png',
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      );
+                    },
                   ),
                 ),
               ),

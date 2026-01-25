@@ -29,7 +29,7 @@ class LessonProvider extends ChangeNotifier {
         notifyListeners();
       });
       
-      // Load all categories first
+      // Load all categories first (preserving CSV order if using CSV)
       byCategory = await _datasetService.loadByCategory(assetPath);
       
       // Get user's selected language
@@ -42,7 +42,14 @@ class LessonProvider extends ChangeNotifier {
         byCategory = _datasetService.filterCategoriesByLanguage(byCategory, userLanguage);
       }
       
-      categories = byCategory.keys.toList()..sort();
+      categories = byCategory.keys.toList();
+      final gf = categories.indexWhere(
+        (c) => c.toLowerCase().contains('greetings') || c.toLowerCase().contains('farewell'),
+      );
+      if (gf > 0) {
+        final cat = categories.removeAt(gf);
+        categories.insert(0, cat);
+      }
     } catch (e) {
       error = 'Failed to load lessons: ${e.toString()}';
       debugPrint('Error loading lessons: $e');

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'supabase_service.dart';
 
 class ProgressService {
   static const _key = 'lanet_progress_v1';
@@ -81,6 +82,7 @@ class ProgressService {
       m['goal_hit'] = hit;
     }
     await _write(m);
+    await _syncXPToSupabase(xp);
   }
 
   Future<void> bumpStreakIfFirstSuccessToday() async {
@@ -92,6 +94,7 @@ class ProgressService {
       final streak = _asInt(m['streak'] ?? 0);
       m['streak'] = streak + 1;
       await _write(m);
+      await _syncStreakToSupabase(streak + 1);
     }
   }
 
@@ -155,6 +158,7 @@ class ProgressService {
       final used = await consumeFreezeToken();
       if (!used) {
         m['streak'] = 0;
+        await _syncStreakToSupabase(0);
       }
     }
     m['last_day'] = today;
@@ -188,5 +192,34 @@ class ProgressService {
       return int.tryParse(v) ?? 0;
     }
     return 0;
+  }
+
+  Future<void> _syncXPToSupabase(int delta) async {
+    final uid = SupabaseService.client.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      final row = await SupabaseService.client
+          .from('users')
+          .select('xp')
+          .eq('id', uid)
+          .maybeSingle();
+      final currentXP = _asInt(row?['xp']);
+      final newXP = currentXP + delta;
+      await SupabaseService.client
+          .from('users')
+          .update({'xp': newXP})
+          .eq('id', uid);
+    } catch (_) {}
+  }
+
+  Future<void> _syncStreakToSupabase(int newStreak) async {
+    final uid = SupabaseService.client.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      await SupabaseService.client
+          .from('users')
+          .update({'streak': newStreak})
+          .eq('id', uid);
+    } catch (_) {}
   }
 }

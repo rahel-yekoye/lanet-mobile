@@ -147,7 +147,7 @@ GoRouter _router(AuthProvider authProvider) {
 
       // 🚫 Not authenticated
       if (!isAuth) {
-        return isAuthRoute ? null : '/login';
+        return isAuthRoute ? null : '/register';
       }
 
       // 🧭 Authenticated but onboarding not completed

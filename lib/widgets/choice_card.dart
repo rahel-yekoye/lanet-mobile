@@ -39,11 +39,11 @@ class _ChoiceCardState extends State<ChoiceCard>
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: widget.backgroundColor ?? Colors.white.withOpacity(0.18),
+                color: widget.backgroundColor ?? Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )
