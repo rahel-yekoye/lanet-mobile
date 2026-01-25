@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/phrase.dart';
 import '../widgets/speech_practice.dart';
+import '../widgets/celebration_dialog.dart';
 import '../services/onboarding_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/lesson_provider.dart';
 import '../services/progress_service.dart';
-import '../services/session_manager.dart';
 import '../services/session_manager.dart';
 
 class LessonScreen extends StatefulWidget {
@@ -113,6 +113,8 @@ class _LessonScreenState extends State<LessonScreen> {
     final unlockedBadges = await _progress.checkAndUnlockAchievements();
     await _sessionManager.markCategoryCompleted(widget.phrase.category);
 
+    if (!mounted) return;
+
     // Determine next category (if any)
     final lp = Provider.of<LessonProvider>(context, listen: false);
     final cats = lp.categories;
@@ -137,56 +139,38 @@ class _LessonScreenState extends State<LessonScreen> {
     }
 
     if (!mounted) return;
-    // Show completion summary
-    showModalBottomSheet(
+    
+    // Show celebration dialog
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Lesson Complete', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Text('⭐ +$xpAward XP', style: const TextStyle(fontSize: 16, color: Colors.teal)),
-              const SizedBox(height: 8),
-              if (unlockedBadges.isNotEmpty)
-                Text('🏅 Unlocked: ${unlockedBadges.join(', ')}', style: const TextStyle(fontSize: 14)),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  OutlinedButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                    },
-                    child: const Text('Close'),
-                  ),
-                  const SizedBox(width: 8),
-                  if (nextCategory != null)
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        final nextPhrases = lp.phrasesFor(nextCategory);
-                        if (nextPhrases.isNotEmpty) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => LessonScreen(phrase: nextPhrases[0]),
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.arrow_forward),
-                      label: Text('Start ${nextCategory}'),
+      barrierDismissible: false,
+      builder: (ctx) => CelebrationDialog(
+        xpEarned: xpAward,
+        achievements: unlockedBadges,
+        nextCategory: nextCategory,
+        onContinue: nextCategory != null
+            ? () {
+                if (!mounted) return;
+                final nextPhrases = lp.phrasesFor(nextCategory!);
+                if (nextPhrases.isNotEmpty) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => LessonScreen(phrase: nextPhrases[0]),
                     ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                  );
+                } else {
+                  if (mounted) {
+                    Navigator.of(context).pop(); // Pop lesson screen
+                  }
+                }
+              }
+            : () {
+                if (mounted) {
+                  Navigator.of(context).pop(); // Pop lesson screen
+                }
+              },
+      ),
     );
   }
 
@@ -236,45 +220,88 @@ class _LessonScreenState extends State<LessonScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                currentPhrase.english,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Lesson ${_currentIndex + 1} of ${_categoryPhrases.length}',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 20),
-              if (_userLanguage != null && _userLanguage!.toLowerCase() == 'amharic')
-                _rowLabel('Amharic', currentPhrase.amharic),
-              if (_userLanguage != null && _userLanguage!.toLowerCase() == 'oromo')
-                _rowLabel('Oromo', currentPhrase.oromo),
-              if (_userLanguage != null && (_userLanguage!.toLowerCase() == 'tigrinya' || _userLanguage!.toLowerCase() == 'tigrigna'))
-                _rowLabel('Tigrinya', currentPhrase.tigrinya),
-              const SizedBox(height: 24),
-              if (_userLanguage != null)
-                Text(
-                  'Practice pronunciation in $_userLanguage:',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Progress Indicator
+            Row(
+              children: [
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: (_currentIndex + 1) / _categoryPhrases.length,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+                    minHeight: 6,
+                  ),
                 ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
+                const SizedBox(width: 12),
+                Text(
+                  '${_currentIndex + 1}/${_categoryPhrases.length}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            
+            // Main Content Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentPhrase.english,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (_userLanguage != null && 
+                        _userLanguage!.toLowerCase() == 'amharic')
+                      _buildTranslationCard('Amharic', currentPhrase.amharic),
+                    if (_userLanguage != null && 
+                        _userLanguage!.toLowerCase() == 'oromo')
+                      _buildTranslationCard('Oromo', currentPhrase.oromo),
+                    if (_userLanguage != null && 
+                        (_userLanguage!.toLowerCase() == 'tigrinya' || 
+                         _userLanguage!.toLowerCase() == 'tigrigna'))
+                      _buildTranslationCard('Tigrinya', currentPhrase.tigrinya),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Practice Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 icon: const Icon(Icons.mic, size: 28),
                 label: const Text(
                   'Practice Pronunciation',
-                  style: TextStyle(fontSize: 18),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 4,
                 ),
                 onPressed: () {
                   setState(() {
@@ -283,9 +310,9 @@ class _LessonScreenState extends State<LessonScreen> {
                   _saveLessonProgress();
                 },
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
       bottomNavigationBar: (_categoryPhrases.length > 1)
@@ -348,6 +375,40 @@ class _LessonScreenState extends State<LessonScreen> {
         Text(text, style: const TextStyle(fontSize: 18)),
         const SizedBox(height: 12),
       ],
+    );
+  }
+
+  Widget _buildTranslationCard(String lang, String text) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.teal.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            lang,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.teal.shade700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
