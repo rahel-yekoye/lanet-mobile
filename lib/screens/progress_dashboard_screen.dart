@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/supabase_config.dart';
 import '../services/progress_service.dart';
 import '../widgets/pattern_background.dart';
 
@@ -6,7 +8,8 @@ class ProgressDashboardScreen extends StatefulWidget {
   const ProgressDashboardScreen({super.key});
 
   @override
-  State<ProgressDashboardScreen> createState() => _ProgressDashboardScreenState();
+  State<ProgressDashboardScreen> createState() =>
+      _ProgressDashboardScreenState();
 }
 
 class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
@@ -18,21 +21,44 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   bool _goalHitToday = false;
   int _freezeTokens = 0;
   final List<String> _recentAchievements = [];
+  RealtimeChannel? _progressChannel;
 
   @override
   void initState() {
     super.initState();
     _loadProgressData();
+    _subscribeRealtime();
   }
 
   Future<void> _loadProgressData() async {
-    final dailyXP = await _progressService.getDailyXP();
-    final streak = await _progressService.getStreak();
-    final dailyGoal = await _progressService.getDailyGoal();
+    // Local fast read
+    var dailyXP = await _progressService.getDailyXP();
+    var streak = await _progressService.getStreak();
+    var dailyGoal = await _progressService.getDailyGoal();
     final achievementsCount = await _progressService.getAchievementsCount();
     final goalHitToday = await _progressService.hasHitDailyGoalToday();
     final freezeTokens = await _progressService.getFreezeTokens();
-    
+
+    // Overlay server values if available
+    if (!SupabaseConfig.isDemoMode) {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final data = await Supabase.instance.client
+            .from('users')
+            .select()
+            .eq('id', user.id)
+            .maybeSingle();
+        if (data != null) {
+          final sDaily = data['daily_xp_earned'];
+          final sStreak = data['streak'];
+          final sGoal = data['daily_goal'];
+          if (sDaily is num) dailyXP = sDaily.toInt();
+          if (sStreak is num) streak = sStreak.toInt();
+          if (sGoal is num) dailyGoal = sGoal.toInt();
+        }
+      }
+    }
+
     setState(() {
       _dailyXP = dailyXP;
       _streak = streak;
@@ -41,6 +67,41 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       _goalHitToday = goalHitToday;
       _freezeTokens = freezeTokens;
     });
+  }
+
+  void _subscribeRealtime() {
+    if (SupabaseConfig.isDemoMode) return;
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) return;
+    _progressChannel = client
+        .channel('public:users')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'users',
+          callback: (payload) {
+            final rec = payload.newRecord;
+            if (rec == null) return;
+            final rid = rec['id'];
+            if (rid != userId) return;
+            final sDaily = rec['daily_xp_earned'];
+            final sStreak = rec['streak'];
+            final sGoal = rec['daily_goal'];
+            setState(() {
+              if (sDaily is num) _dailyXP = sDaily.toInt();
+              if (sStreak is num) _streak = sStreak.toInt();
+              if (sGoal is num) _dailyGoal = sGoal.toInt();
+            });
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _progressChannel?.unsubscribe();
+    super.dispose();
   }
 
   @override
@@ -67,24 +128,24 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
             children: [
               // Daily Progress Card
               _buildDailyProgressCard(),
-              
+
               const SizedBox(height: 16),
-              
+
               // Streak Card
               _buildStreakCard(),
-              
+
               const SizedBox(height: 16),
-              
+
               // Achievements Section
               _buildAchievementsSection(),
-              
+
               const SizedBox(height: 16),
-              
+
               // Stats Overview
               _buildStatsOverview(),
-              
+
               const SizedBox(height: 16),
-              
+
               // Weekly Activity (Placeholder)
               _buildWeeklyActivity(),
             ],
@@ -96,8 +157,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
 
   Widget _buildDailyProgressCard() {
     final progressPercent = (_dailyXP / _dailyGoal).clamp(0.0, 1.0);
-    final remainingXP = (_dailyGoal - _dailyXP).clamp(0, double.infinity).toInt();
-    
+    final remainingXP =
+        (_dailyGoal - _dailyXP).clamp(0, double.infinity).toInt();
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -117,7 +179,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 ),
                 if (_goalHitToday)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.green.shade100,
                       borderRadius: BorderRadius.circular(20),
@@ -127,15 +190,16 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                       children: [
                         Icon(Icons.check_circle, color: Colors.green, size: 16),
                         SizedBox(width: 4),
-                        Text('Completed', style: TextStyle(color: Colors.green)),
+                        Text('Completed',
+                            style: TextStyle(color: Colors.green)),
                       ],
                     ),
                   ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Progress Bar
             Stack(
               children: [
@@ -163,9 +227,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -186,7 +250,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                   ),
               ],
             ),
-            
+
             if (!_goalHitToday && remainingXP > 0) ...[
               const SizedBox(height: 8),
               LinearProgressIndicator(
@@ -216,9 +280,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
             const SizedBox(height: 16),
-            
             Row(
               children: [
                 Container(
@@ -233,9 +295,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     color: Colors.orange.shade700,
                   ),
                 ),
-                
                 const SizedBox(width: 16),
-                
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -249,9 +309,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _streak == 1 
-                          ? 'Keep it going!' 
-                          : _streak < 7 
+                      _streak == 1
+                          ? 'Keep it going!'
+                          : _streak < 7
                               ? 'Almost to your first week!'
                               : 'Amazing dedication!',
                       style: TextStyle(
@@ -261,12 +321,11 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     ),
                   ],
                 ),
-                
                 const Spacer(),
-                
                 if (_freezeTokens > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade100,
                       borderRadius: BorderRadius.circular(16),
@@ -274,7 +333,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.ac_unit, size: 16, color: Colors.blue.shade700),
+                        Icon(Icons.ac_unit,
+                            size: 16, color: Colors.blue.shade700),
                         const SizedBox(width: 4),
                         Text(
                           '$_freezeTokens',
@@ -309,9 +369,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
             const SizedBox(height: 16),
-            
             Row(
               children: [
                 Container(
@@ -326,9 +384,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     color: Colors.purple.shade700,
                   ),
                 ),
-                
                 const SizedBox(width: 16),
-                
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,7 +407,6 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     ],
                   ),
                 ),
-                
                 const Icon(Icons.chevron_right),
               ],
             ),
@@ -376,9 +431,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
             const SizedBox(height: 16),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -434,9 +487,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Simple placeholder for weekly chart
             Container(
               height: 100,
@@ -451,9 +504,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             const Text(
               'Practice regularly to see your progress chart!',
               style: TextStyle(

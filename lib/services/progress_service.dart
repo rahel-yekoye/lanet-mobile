@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/supabase_config.dart';
+import 'supabase_service.dart';
 
 class ProgressService {
   static const _key = 'lanet_progress_v1';
@@ -32,6 +34,12 @@ class ProgressService {
   Future<int> getStreak() async {
     final m = await _read();
     return _asInt(m['streak'] ?? 0);
+  }
+
+  Future<void> setStreak(int value) async {
+    final m = await _read();
+    m['streak'] = _asInt(value);
+    await _write(m);
   }
 
   Future<int> getDailyGoal() async {
@@ -81,6 +89,29 @@ class ProgressService {
       m['goal_hit'] = hit;
     }
     await _write(m);
+    if (!SupabaseConfig.isDemoMode) {
+      final latestXP = _asInt(daily[day]);
+      final latestStreak = _asInt(m['streak'] ?? 0);
+      await SupabaseService.updateProgress(
+        dailyXP: latestXP,
+        streak: latestStreak,
+      );
+    }
+  }
+
+  Future<void> setDailyXPForToday(int xp) async {
+    final m = await _read();
+    final day = _today();
+    final daily = Map<String, dynamic>.from(m['daily'] ?? {});
+    daily[day] = _asInt(xp);
+    m['daily'] = daily;
+    final goal = _asInt(m['daily_goal'] ?? 100);
+    final hit = Map<String, dynamic>.from(m['goal_hit'] ?? {});
+    if ((daily[day] as int) >= goal) {
+      hit[day] = true;
+      m['goal_hit'] = hit;
+    }
+    await _write(m);
   }
 
   Future<void> bumpStreakIfFirstSuccessToday() async {
@@ -92,6 +123,12 @@ class ProgressService {
       final streak = _asInt(m['streak'] ?? 0);
       m['streak'] = streak + 1;
       await _write(m);
+      if (!SupabaseConfig.isDemoMode) {
+        await SupabaseService.updateProgress(
+          dailyXP: 0,
+          streak: streak + 1,
+        );
+      }
     }
   }
 

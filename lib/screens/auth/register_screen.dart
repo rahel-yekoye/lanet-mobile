@@ -49,8 +49,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
         context.go('/splash');
       }
     } catch (e) {
+      print('Registration error caught: \$e');
+      print('Error type: \${e.runtimeType}');
+      
+      String errorMessage = e.toString();
+      
+      // Handle specific error messages
+      if (errorMessage.toLowerCase().contains('network') ||
+          errorMessage.toLowerCase().contains('connection') ||
+          errorMessage.toLowerCase().contains('timeout') ||
+          errorMessage.toLowerCase().contains('fetch') ||
+          errorMessage.toLowerCase().contains('ssl') ||
+          errorMessage.toLowerCase().contains('certificate')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (errorMessage.toLowerCase().contains('invalid') ||
+                 errorMessage.toLowerCase().contains('credentials')) {
+        errorMessage = 'Invalid information provided. Please check your details.';
+      } else if (errorMessage.toLowerCase().contains('too many')) {
+        errorMessage = 'Too many attempts. Please wait a moment and try again.';
+      } else if (errorMessage.toLowerCase().contains('already') ||
+                 errorMessage.toLowerCase().contains('409')) {
+        errorMessage = 'This email is already registered. Please use a different email or try logging in.';
+      }
+      
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = errorMessage.replaceAll('Exception: ', '');
       });
     } finally {
       if (mounted) {

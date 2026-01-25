@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/user_model.dart' as app_model;
 import 'supabase_service.dart';
+import '../config/supabase_config.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -39,6 +40,10 @@ class AuthService {
 
   // Check if user is authenticated
   static Future<bool> isAuthenticated() async {
+    if (SupabaseConfig.isDemoMode) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_userKey) != null;
+    }
     final session = _client.auth.currentSession;
     return session != null;
   }
@@ -46,20 +51,64 @@ class AuthService {
   // Login user
   static Future<app_model.User> login(String email, String password) async {
     try {
-      final user = await SupabaseService.signIn(email, password);
-      if (user == null) {
-        throw Exception('Invalid credentials');
+      developer
+          .log('AuthService.login: Attempting to sign in with email: $email');
+      if (SupabaseConfig.isDemoMode) {
+        final name = email.split('@').first;
+        final userData = {
+          'id': 'demo-$email',
+          'name': name.isNotEmpty ? name : 'Demo User',
+          'email': email,
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+        await _saveAuthData('', userData);
+        return app_model.User.fromJson(userData);
       }
-      
-      // Fetch user data from database
+      final user = await SupabaseService.signIn(email, password);
+      developer.log(
+          'AuthService.login: Sign in response received: ${user != null ? "Success" : "Null user"}');
+      if (user == null) {
+        throw Exception('Invalid email or password.');
+      }
       final userData = await _fetchUserProfile(user.id);
-      
-      // Save auth data locally
+      developer.log('AuthService.login: User profile fetched successfully');
       await _saveAuthData('', userData);
-      
       return app_model.User.fromJson(userData);
     } catch (e) {
       developer.log('Login error: $e');
+      developer.log('Error type: ${e.runtimeType}');
+
+      final msg = e.toString();
+      if (msg.contains('AuthRetryableFetchException') ||
+          msg.contains('Failed to fetch') ||
+          msg.contains('ClientException') ||
+          msg.contains('SocketException') ||
+          msg.contains('connection timed out') ||
+          msg.contains('Connection closed') ||
+          msg.contains('handshake exception') ||
+          msg.contains('certificate verify failed')) {
+        throw Exception(
+            'Network issue. Please check your internet connection and try again. If the problem persists, contact support.');
+      }
+      if (msg.contains('Invalid login credentials') ||
+          msg.contains('Invalid credentials') ||
+          msg.contains('400')) {
+        throw Exception(
+            'Invalid email or password. Please check your credentials and try again.');
+      }
+      if (msg.contains('429')) {
+        throw Exception(
+            'Too many requests. Please wait a moment and try again.');
+      }
+
+      // Re-throw the original error for better debugging
+      developer.log('Re-throwing original error: $e');
       rethrow;
     }
   }
@@ -75,12 +124,30 @@ class AuthService {
     int? dailyGoal,
   }) async {
     try {
+      developer.log(
+          'AuthService.register: Attempting to sign up with email: $email');
+      if (SupabaseConfig.isDemoMode) {
+        final userData = {
+          'id': 'demo-$email',
+          'name': name,
+          'email': email,
+          'xp': 0,
+          'level': 1,
+          'streak': 0,
+          'lastActiveDate': DateTime.now().toIso8601String(),
+          'dailyGoal': 100,
+          'dailyXpEarned': 0,
+          'settings': {},
+        };
+        await _saveAuthData('', userData);
+        return app_model.User.fromJson(userData);
+      }
       final user = await SupabaseService.signUp(email, password, name: name);
+      developer.log(
+          'AuthService.register: Sign up response received: ${user != null ? "Success" : "Null user"}');
       if (user == null) {
         throw Exception('Registration failed');
       }
-      
-      // Create initial user profile - NEW USERS should go through onboarding
       final userData = {
         'id': user.id,
         'name': name,
@@ -89,22 +156,37 @@ class AuthService {
         'level': 1,
         'streak': 0,
         'lastActiveDate': DateTime.now().toIso8601String(),
-        'dailyGoal': 100, // Default value
+        'dailyGoal': 100,
         'dailyXpEarned': 0,
         'settings': {},
-        // Don't set onboarding fields yet - let user complete onboarding flow
       };
-      
-      // Note: The database trigger 'on_auth_user_created' automatically creates
-      // rows in 'public.users' and 'public.profiles'. We don't need to manually
-      // insert them here, which avoids 409 Conflict errors and schema mismatch issues.
-      
-      // Save auth data locally
       await _saveAuthData('', userData);
-      
       return app_model.User.fromJson(userData);
     } catch (e) {
       developer.log('Registration error: $e');
+      developer.log('Registration error type: ${e.runtimeType}');
+
+      final msg = e.toString();
+      if (msg.contains('AuthRetryableFetchException') ||
+          msg.contains('Failed to fetch') ||
+          msg.contains('ClientException') ||
+          msg.contains('SocketException') ||
+          msg.contains('connection timed out') ||
+          msg.contains('Connection closed') ||
+          msg.contains('handshake exception') ||
+          msg.contains('certificate verify failed')) {
+        throw Exception(
+            'Network issue. Please check your internet connection and try again. If the problem persists, contact support.');
+      }
+      if (msg.contains('429')) {
+        throw Exception(
+            'Too many requests. Please wait a moment and try again.');
+      }
+      if (msg.contains('400') || msg.contains('409')) {
+        throw Exception(
+            'Registration failed. This email may already be registered or the data is invalid.');
+      }
+
       rethrow;
     }
   }
@@ -130,7 +212,7 @@ class AuthService {
       if (user == null) {
         throw Exception('No authenticated user');
       }
-      
+
       final userData = await _fetchUserProfile(user.id);
       return app_model.User.fromJson(userData);
     } catch (e) {
@@ -149,12 +231,27 @@ class AuthService {
     bool? onboardingCompleted,
   }) async {
     try {
+      if (SupabaseConfig.isDemoMode) {
+        final current = await getUserData() ?? {};
+        if (name != null) current['name'] = name;
+        if (language != null) current['language'] = language;
+        if (level != null) current['level'] = level;
+        if (reason != null) current['reason'] = reason;
+        if (dailyGoal != null) {
+          current['daily_goal'] = dailyGoal;
+          current['dailyGoal'] = dailyGoal;
+        }
+        if (onboardingCompleted != null) {
+          current['onboarding_completed'] = onboardingCompleted;
+          current['onboardingCompleted'] = onboardingCompleted;
+        }
+        await _saveAuthData('', current);
+        return app_model.User.fromJson(current);
+      }
       final user = _client.auth.currentUser;
       if (user == null) {
         throw Exception('No authenticated user');
       }
-      
-      // Delegate to SupabaseService for robust updating (handles user_preferences, profiles, and users tables)
       await SupabaseService.updateUserData(
         name: name,
         language: language,
@@ -163,11 +260,8 @@ class AuthService {
         dailyGoal: dailyGoal,
         onboardingCompleted: onboardingCompleted,
       );
-      
-      // Fetch updated user data
       final userData = await _fetchUserProfile(user.id);
       await _saveAuthData('', userData);
-      
       return app_model.User.fromJson(userData);
     } catch (e) {
       developer.log('Update profile error: $e');

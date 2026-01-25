@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/onboarding_service.dart';
 import '../../widgets/onboarding_scaffold.dart';
 
@@ -29,7 +31,8 @@ class LanguageScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -52,7 +55,8 @@ class LanguageScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ...languages.map((lang) => _buildLanguageOption(lang, context)),
+                  ...languages
+                      .map((lang) => _buildLanguageOption(lang, context)),
                 ],
               ),
             ),
@@ -65,7 +69,7 @@ class LanguageScreen extends StatelessWidget {
   Widget _buildLanguageOption(String language, BuildContext context) {
     IconData icon;
     Color iconColor;
-    
+
     switch (language.toLowerCase()) {
       case 'amharic':
         icon = Icons.language;
@@ -83,7 +87,7 @@ class LanguageScreen extends StatelessWidget {
         icon = Icons.question_mark;
         iconColor = Colors.grey;
     }
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -106,8 +110,22 @@ class LanguageScreen extends StatelessWidget {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () async {
-          await OnboardingService.setValue(OnboardingService.keyLanguage, language);
-          context.push('/onboarding/level');
+          print('DEBUG: Language Selected: $language');
+          await OnboardingService.setValue(
+              OnboardingService.keyLanguage, language);
+
+          // Incrementally save to backend so we don't lose progress if user drops off
+          try {
+            final authProvider =
+                Provider.of<AuthProvider>(context, listen: false);
+            await authProvider.updateProfile(language: language);
+          } catch (e) {
+            debugPrint('Error saving language incrementally: $e');
+          }
+
+          if (context.mounted) {
+            context.push('/onboarding/level');
+          }
         },
       ),
     );

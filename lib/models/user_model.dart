@@ -7,31 +7,31 @@ part 'user_model.g.dart';
 class User extends Equatable {
   @HiveField(0)
   final String id;
-  
+
   @HiveField(1)
   final String name;
-  
+
   @HiveField(2)
   final String? avatarUrl;
-  
+
   @HiveField(3)
   final int xp;
-  
+
   @HiveField(4)
   final int level;
-  
+
   @HiveField(5)
   final int streak;
-  
+
   @HiveField(6)
   final DateTime? lastActiveDate;
-  
+
   @HiveField(7)
   final int dailyGoal;
-  
+
   @HiveField(8)
   final int dailyXpEarned;
-  
+
   @HiveField(9)
   final Map<String, dynamic> settings;
 
@@ -46,30 +46,53 @@ class User extends Equatable {
     this.dailyGoal = 100,
     this.dailyXpEarned = 0,
     Map<String, dynamic>? settings,
-  }) : lastActiveDate = lastActiveDate ?? DateTime.now(),
-       settings = settings ?? {};
+  })  : lastActiveDate = lastActiveDate ?? DateTime.now(),
+        settings = settings ?? {};
 
   factory User.fromJson(Map<String, dynamic> json) {
+    int _asInt(dynamic v) {
+      if (v is int) return v;
+      if (v is double) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? 0;
+      return 0;
+    }
+
+    int _parseLevel(dynamic v) {
+      if (v is int) return v;
+      if (v is String) {
+        final s = v.toLowerCase();
+        if (s.startsWith('begin')) return 1;
+        if (s.startsWith('inter')) return 2;
+        if (s.startsWith('adv')) return 3;
+        return int.tryParse(s) ?? 1;
+      }
+      return 1;
+    }
+
+    DateTime? _parseDate(dynamic v) {
+      if (v is DateTime) return v;
+      if (v is String) return DateTime.tryParse(v);
+      return null;
+    }
+
+    final dailyGoalRaw = json['dailyGoal'] ?? json['daily_goal'];
+    final dailyXpRaw = json['dailyXpEarned'] ?? json['daily_xp_earned'];
     return User(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      avatarUrl: json['avatarUrl'] as String?,
-      xp: json['xp'] as int? ?? 0,
-      level: json['level'] as int? ?? 1,
-      streak: json['streak'] as int? ?? 0,
-      lastActiveDate: json['lastActiveDate'] != null 
-        ? (json['lastActiveDate'] is String 
-            ? DateTime.tryParse(json['lastActiveDate']) 
-            : json['lastActiveDate'] is DateTime 
-                ? json['lastActiveDate'] 
-                : DateTime.now()) 
-        : DateTime.now(),
-      dailyGoal: json['dailyGoal'] as int? ?? json['daily_goal'] as int? ?? 100,
-      dailyXpEarned: json['dailyXpEarned'] as int? ?? json['daily_xp_earned'] as int? ?? 0,
-      settings: (json['settings'] as Map<dynamic, dynamic>?)?.cast<String, dynamic>() ?? {},
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      avatarUrl: json['avatarUrl']?.toString(),
+      xp: _asInt(json['xp']),
+      level: _parseLevel(json['level']),
+      streak: _asInt(json['streak']),
+      lastActiveDate: _parseDate(json['lastActiveDate']) ?? DateTime.now(),
+      dailyGoal: _asInt(dailyGoalRaw),
+      dailyXpEarned: _asInt(dailyXpRaw),
+      settings: (json['settings'] as Map<dynamic, dynamic>?)
+              ?.cast<String, dynamic>() ??
+          {},
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

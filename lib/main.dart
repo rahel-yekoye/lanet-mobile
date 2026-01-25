@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/supabase_config.dart';
 
 import 'providers/lesson_provider.dart';
 import 'providers/fidel_provider.dart';
@@ -20,19 +21,34 @@ import 'screens/onboarding/language_screen.dart';
 import 'screens/onboarding/level_screen.dart';
 import 'screens/onboarding/reason_screen.dart';
 import 'screens/onboarding/daily_goal_screen.dart';
+import 'screens/profile_screen.dart';
 
 // Progress screen
 import 'screens/progress_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: 'https://dvjwoggpbhxygrhfraut.supabase.co',
-    anonKey: 'sb_publishable_gmm2eBcmqVtPQYgC6ibQJA_zKApKLxv',
-  );
-  
+
+  try {
+    print('Initializing Supabase with URL: ${SupabaseConfig.url}');
+    if (!SupabaseConfig.isDemoMode) {
+      await Supabase.initialize(
+        url: SupabaseConfig.url,
+        anonKey: SupabaseConfig.anonKey,
+      );
+      print('Supabase initialized successfully');
+    } else {
+      print('Demo mode enabled, skipping Supabase initialization');
+    }
+  } catch (e) {
+    print('Error initializing Supabase: \${e.toString()}');
+    print('This might be due to network connectivity issues or incorrect Supabase configuration');
+    print('Please verify your Supabase URL and API key are correct in lib/config/supabase_config.dart');
+    
+    
+    // Continue anyway to allow app to load with error handling
+  }
+
   // Show a readable error widget in the app when a build/layout error occurs
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return Scaffold(
@@ -46,7 +62,9 @@ void main() async {
               children: [
                 const Icon(Icons.error_outline, size: 64, color: Colors.red),
                 const SizedBox(height: 12),
-                const Text('An error occurred while building the UI', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('An error occurred while building the UI',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text(details.exceptionAsString(), textAlign: TextAlign.center),
               ],
@@ -81,7 +99,7 @@ class MyApp extends StatelessWidget {
           update: (_, auth, lessonProvider) {
             final provider = lessonProvider ?? LessonProvider(DatasetService());
             final userLanguage = auth.userData?['language'];
-            
+
             if (userLanguage != null && userLanguage.toString().isNotEmpty) {
               provider.updateLanguage(assetPath, userLanguage.toString());
             }
@@ -134,10 +152,8 @@ GoRouter _router(AuthProvider authProvider) {
       final onboardingDone = authProvider.onboardingCompleted;
       final isLoading = authProvider.isLoading;
 
-      final isAuthRoute =
-          location == '/login' || location == '/register';
-      final isOnboardingRoute =
-          location.startsWith('/onboarding');
+      final isAuthRoute = location == '/login' || location == '/register';
+      final isOnboardingRoute = location.startsWith('/onboarding');
       final isSplash = location == '/splash';
 
       // ⏳ Still determining auth state
@@ -152,8 +168,35 @@ GoRouter _router(AuthProvider authProvider) {
 
       // 🧭 Authenticated but onboarding not completed
       if (isAuth && !onboardingDone) {
-        debugPrint('Router: User authenticated but onboarding not complete, redirecting to onboarding');
-        return isOnboardingRoute ? null : '/onboarding/language';
+        // Smart Routing: Check what is missing and redirect accordingly
+        final userData = authProvider.userData;
+        final hasLanguage = userData?['language'] != null &&
+            userData!['language'].toString().isNotEmpty;
+        final hasLevel = userData?['level'] != null &&
+            userData!['level'].toString().isNotEmpty;
+        final hasReason = userData?['reason'] != null &&
+            userData!['reason'].toString().isNotEmpty;
+
+        // If we are already on an onboarding route, we might want to let them stay there
+        // unless they are on the WRONG onboarding route (e.g. back at language when they have language)
+        if (isOnboardingRoute) {
+          return null;
+        }
+        // Allow accessing Profile and Progress even if onboarding is not completed
+        if (location == '/profile' || location == '/progress') {
+          return null;
+        }
+
+        if (!hasLanguage) {
+          return '/onboarding/language';
+        } else if (!hasLevel) {
+          return '/onboarding/level';
+        } else if (!hasReason) {
+          return '/onboarding/reason';
+        } else {
+          // If they have all essentials but flag is false, just send to goal (final step)
+          return '/onboarding/daily_goal';
+        }
       }
 
       // ✅ Authenticated & onboarding completed
@@ -163,7 +206,9 @@ GoRouter _router(AuthProvider authProvider) {
           return '/home';
         }
         // If already on home screen or other valid locations, don't redirect
-        if (location == '/home' || location == '/progress') {
+        if (location == '/home' ||
+            location == '/progress' ||
+            location == '/profile') {
           return null;
         }
         // For any other location, redirect to home
@@ -207,21 +252,81 @@ GoRouter _router(AuthProvider authProvider) {
         builder: (_, __) => const DailyGoalScreen(),
       ),
 
-      // Main
-      GoRoute(
-        path: '/home',
-        builder: (_, __) => const HomeScreen(),
-      ),
-      
-      // Progress
-      GoRoute(
-        path: '/progress',
-        builder: (_, __) => const ProgressDashboardScreen(),
+      ShellRoute(
+        builder: (context, state, child) {
+          return BottomNavScaffold(currentPath: state.uri.path, child: child);
+        },
+        routes: [
+          GoRoute(
+            path: '/home',
+            builder: (_, __) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/progress',
+            builder: (_, __) => const ProgressDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (_, __) => const ProfileScreen(),
+          ),
+        ],
       ),
     ],
   );
 }
 
+class BottomNavScaffold extends StatelessWidget {
+  const BottomNavScaffold(
+      {super.key, required this.child, required this.currentPath});
+  final Widget child;
+  final String currentPath;
+
+  @override
+  Widget build(BuildContext context) {
+    int index = 0;
+    if (currentPath.startsWith('/progress')) {
+      index = 1;
+    } else if (currentPath.startsWith('/profile')) {
+      index = 2;
+    }
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index,
+        onDestinationSelected: (i) {
+          switch (i) {
+            case 0:
+              context.go('/home');
+              break;
+            case 1:
+              context.go('/progress');
+              break;
+            case 2:
+              context.go('/profile');
+              break;
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart),
+            label: 'Progress',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
 // ------------------------------
 // 🌟 Splash Screen
 // ------------------------------
@@ -262,8 +367,7 @@ class SplashPage extends StatelessWidget {
               ),
               SizedBox(height: 32),
               CircularProgressIndicator(
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(Colors.teal),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
               ),
               SizedBox(height: 16),
               Text('Loading...', style: TextStyle(color: Colors.teal)),
