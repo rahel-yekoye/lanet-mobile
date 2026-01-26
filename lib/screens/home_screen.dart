@@ -9,7 +9,9 @@ import '../services/onboarding_service.dart';
 
 import '../providers/lesson_provider.dart';
 import '../models/phrase.dart';
+import '../services/exercise_service.dart';
 import 'lesson_screen.dart';
+import 'exercise_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +27,17 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadUserLanguage();
     _restoreSession();
+    // Refresh completed categories from Supabase when screen loads
+    _refreshCompletedCategories();
+  }
+  
+  Future<void> _refreshCompletedCategories() async {
+    // Force refresh completed categories from Supabase
+    final sessionManager = SessionManager();
+    await sessionManager.getCompletedCategories(); // This will fetch from Supabase and update local storage
+    if (mounted) {
+      setState(() {}); // Refresh the UI to show updated completion status
+    }
   }
   
   Future<void> _loadUserLanguage() async {
@@ -70,12 +83,12 @@ class _HomeScreenState extends State<HomeScreen> {
             targetPhrase = phrases[0];
           }
           
-          if (targetPhrase != null && mounted) {
+          if (mounted) {
             // Navigate to the lesson screen
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => LessonScreen(phrase: targetPhrase),
+                builder: (_) => LessonScreen(phrase: targetPhrase!),
               ),
             );
           }
@@ -103,18 +116,10 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Text('Lanet — Learn Languages'),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.bar_chart),
-              onPressed: () {
-                GoRouter.of(context).go('/progress');
-              },
-              tooltip: 'View Progress',
-            ),
-          ],
         ),
         body: RefreshIndicator(
           onRefresh: () async {
+            await _refreshCompletedCategories();
             setState(() {});
           },
           child: ListView(
@@ -234,6 +239,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final completedCategories = snapshot.data ?? [];
         final isCompleted = completedCategories.contains(category);
         final phrases = lp.phrasesFor(category);
+        // Check if this is a Supabase lesson
+        final supabaseLesson = lp.getSupabaseLesson(category);
+        // For Supabase lessons, we'll show "exercises" text, for regular lessons show phrase count
         final count = phrases.length;
         
         // Determine if lesson is locked (previous must be completed)
@@ -260,6 +268,46 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? null
                 : () async {
                     final sessionManager = SessionManager();
+                    
+                    // Check if this is a Supabase lesson
+                    final supabaseLesson = lp.getSupabaseLesson(category);
+                    if (supabaseLesson != null) {
+                      // Handle Supabase lesson - navigate to exercises directly
+                      try {
+                        final exercises = await ExerciseService.getExercisesForLesson(supabaseLesson.id);
+                        if (exercises.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ExerciseScreen(
+                                lessonId: supabaseLesson.id,
+                                lessonTitle: supabaseLesson.title,
+                                exercises: exercises,
+                                onComplete: () {
+                                  Navigator.of(context).pop();
+                                  // Mark category as completed
+                                  sessionManager.markCategoryCompleted(category);
+                                },
+                              ),
+                            ),
+                          );
+                        } else {
+                          // No exercises - show lesson info
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${supabaseLesson.title}: ${supabaseLesson.description ?? "No exercises yet"}'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error loading lesson: $e')),
+                        );
+                      }
+                      return;
+                    }
+                    
+                    // Handle regular phrase-based lessons
                     final phrases = lp.phrasesFor(category);
                     if (phrases.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -353,8 +401,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? Colors.grey.shade600
                                       : Colors.black87,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             if (isCompleted)
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -378,13 +429,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$count phrases',
+                          supabaseLesson != null
+                              ? 'Click to start exercises'
+                              : '$count phrases',
                           style: TextStyle(
                             fontSize: 14,
                             color: isLocked
                                 ? Colors.grey.shade500
                                 : Colors.grey.shade600,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                         if (isLocked) ...[
                           const SizedBox(height: 8),
@@ -395,6 +450,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.grey.shade600,
                               fontStyle: FontStyle.italic,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
                           ),
                         ],
                       ],

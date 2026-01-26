@@ -23,6 +23,28 @@ class ProgressService {
     return '${now.year}-${now.month}-${now.day}';
   }
 
+  String _dateKey(DateTime date) {
+    return '${date.year}-${date.month}-${date.day}';
+  }
+
+  /// Get weekly XP data (last 7 days including today)
+  Future<Map<String, int>> getWeeklyXP() async {
+    final m = await _read();
+    final daily = Map<String, dynamic>.from(m['daily'] ?? {});
+    final weeklyData = <String, int>{};
+    
+    // Get last 7 days
+    final now = DateTime.now();
+    for (int i = 6; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final dateKey = _dateKey(date);
+      final xp = _asInt(daily[dateKey] ?? 0);
+      weeklyData[dateKey] = xp;
+    }
+    
+    return weeklyData;
+  }
+
   Future<int> getDailyXP() async {
     final m = await _read();
     final day = _today();
@@ -44,7 +66,7 @@ class ProgressService {
 
   Future<int> getDailyGoal() async {
     final m = await _read();
-    return _asInt(m['daily_goal'] ?? 100);
+    return _asInt(m['daily_goal'] ?? 5);
   }
 
   Future<void> setDailyGoal(int goal) async {
@@ -92,6 +114,8 @@ class ProgressService {
     if (!SupabaseConfig.isDemoMode) {
       final latestXP = _asInt(daily[day]);
       final latestStreak = _asInt(m['streak'] ?? 0);
+      // Also update total XP - fetch current total and add the new XP
+      await _syncXPToSupabase(xp);
       await SupabaseService.updateProgress(
         dailyXP: latestXP,
         streak: latestStreak,

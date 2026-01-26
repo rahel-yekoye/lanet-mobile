@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/auth_scaffold.dart';
+import 'role_selection_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -37,16 +38,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
+      // Get selected role
+      final selectedRole = await RoleSelectionScreen.getSelectedRole();
+      
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final success = await authProvider.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        role: selectedRole, // Pass the selected role
       );
 
       if (success && mounted) {
         // Let the router's redirect logic decide the next screen
-        context.go('/splash');
+        // Router will check role and route to admin dashboard or student screens
+        context.go('/home');
       }
     } catch (e) {
       print('Registration error caught: \$e');

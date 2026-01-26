@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:lanet_mobile/models/fidel_model.dart';
 import 'package:lanet_mobile/providers/fidel_provider.dart';
-import 'package:lanet_mobile/screens/alphabet/letter_detail_screen.dart';
 import 'package:lanet_mobile/services/srs_service.dart';
 import 'package:lanet_mobile/services/alphabet_audio_service.dart';
 import 'package:lanet_mobile/widgets/pattern_background.dart';

@@ -16,6 +16,7 @@ class ProgressDashboardScreen extends StatefulWidget {
 class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   final ProgressService _progressService = ProgressService();
   int _dailyXP = 0;
+  int _totalXP = 0; // Total XP across all time
   int _streak = 0;
   int _dailyGoal = 100;
   int _achievementsCount = 0;
@@ -23,6 +24,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   int _freezeTokens = 0;
   final List<String> _recentAchievements = [];
   RealtimeChannel? _progressChannel;
+  Map<String, int> _weeklyXP = {};
 
   @override
   void initState() {
@@ -39,8 +41,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     final achievementsCount = await _progressService.getAchievementsCount();
     final goalHitToday = await _progressService.hasHitDailyGoalToday();
     final freezeTokens = await _progressService.getFreezeTokens();
+    final weeklyXP = await _progressService.getWeeklyXP();
 
-    // Overlay server values if available
+    // Load total XP and overlay server values if available
+    int totalXP = 0;
     if (!SupabaseConfig.isDemoMode) {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
@@ -53,21 +57,27 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
           final sDaily = data['daily_xp_earned'];
           final sStreak = data['streak'];
           final sGoal = data['daily_goal'];
+          final sTotalXP = data['xp'];
           if (sDaily is num) dailyXP = sDaily.toInt();
           if (sStreak is num) streak = sStreak.toInt();
           if (sGoal is num) dailyGoal = sGoal.toInt();
+          if (sTotalXP is num) totalXP = sTotalXP.toInt();
         }
       }
     }
 
-    setState(() {
-      _dailyXP = dailyXP;
-      _streak = streak;
-      _dailyGoal = dailyGoal;
-      _achievementsCount = achievementsCount;
-      _goalHitToday = goalHitToday;
-      _freezeTokens = freezeTokens;
-    });
+    if (mounted) {
+      setState(() {
+        _dailyXP = dailyXP;
+        _totalXP = totalXP;
+        _streak = streak;
+        _dailyGoal = dailyGoal;
+        _achievementsCount = achievementsCount;
+        _goalHitToday = goalHitToday;
+        _freezeTokens = freezeTokens;
+        _weeklyXP = weeklyXP;
+      });
+    }
   }
 
   void _subscribeRealtime() {
@@ -75,32 +85,66 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     final client = Supabase.instance.client;
     final userId = client.auth.currentUser?.id;
     if (userId == null) return;
-    _progressChannel = client
-        .channel('public:users')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update,
-          schema: 'public',
-          table: 'users',
-          callback: (payload) {
-            final rec = payload.newRecord;
-            final rid = rec['id'];
-            if (rid != userId) return;
-            final sDaily = rec['daily_xp_earned'];
-            final sStreak = rec['streak'];
-            final sGoal = rec['daily_goal'];
-            setState(() {
-              if (sDaily is num) _dailyXP = sDaily.toInt();
-              if (sStreak is num) _streak = sStreak.toInt();
-              if (sGoal is num) _dailyGoal = sGoal.toInt();
-            });
-          },
-        )
-        .subscribe();
+    
+    try {
+      // Unsubscribe from existing channel if any
+      if (_progressChannel != null) {
+        try {
+          _progressChannel?.unsubscribe();
+        } catch (e) {
+          debugPrint('Error unsubscribing existing channel: $e');
+        }
+        _progressChannel = null;
+      }
+      
+      // Use a unique channel name to avoid conflicts
+      final channelName = 'progress_${userId}_${DateTime.now().millisecondsSinceEpoch}';
+      _progressChannel = client
+          .channel(channelName)
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'users',
+            callback: (payload) {
+              if (!mounted) return;
+              try {
+                final rec = payload.newRecord;
+                final rid = rec['id'];
+                // Only process updates for current user
+                if (rid != userId) return;
+                final sDaily = rec['daily_xp_earned'];
+                final sStreak = rec['streak'];
+                final sGoal = rec['daily_goal'];
+                final sTotalXP = rec['xp'];
+                if (mounted) {
+                  setState(() {
+                    if (sDaily is num) _dailyXP = sDaily.toInt();
+                    if (sStreak is num) _streak = sStreak.toInt();
+                    if (sGoal is num) _dailyGoal = sGoal.toInt();
+                    if (sTotalXP is num) _totalXP = sTotalXP.toInt();
+                  });
+                }
+              } catch (e) {
+                debugPrint('Error processing realtime update: $e');
+              }
+            },
+          )
+          .subscribe();
+    } catch (e) {
+      debugPrint('Error subscribing to realtime updates: $e');
+    }
   }
 
   @override
   void dispose() {
-    _progressChannel?.unsubscribe();
+    // Safely unsubscribe from realtime channel
+    try {
+      _progressChannel?.unsubscribe();
+    } catch (e) {
+      // Ignore errors during disposal - channel may already be closed
+      debugPrint('Error unsubscribing from progress channel: $e');
+    }
+    _progressChannel = null;
     super.dispose();
   }
 
@@ -432,11 +476,14 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Wrap(
+              spacing: 8,
+              runSpacing: 16,
+              alignment: WrapAlignment.spaceAround,
               children: [
                 _buildStatItem('🔥', 'Streak', _streak.toString()),
                 _buildStatItem('⭐', 'XP Today', _dailyXP.toString()),
+                _buildStatItem('🏆', 'Total XP', _totalXP.toString()),
                 _buildStatItem('🎯', 'Goal', _dailyGoal.toString()),
               ],
             ),
@@ -448,6 +495,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
 
   Widget _buildStatItem(String emoji, String label, String value) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           emoji,
@@ -460,6 +508,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         Text(
           label,
@@ -467,12 +516,35 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
             fontSize: 12,
             color: Colors.grey.shade600,
           ),
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
   Widget _buildWeeklyActivity() {
+    // Get day names for the last 7 days
+    final now = DateTime.now();
+    final dayNames = <String>[];
+    final dayData = <int>[];
+    int maxXP = 0;
+    
+    for (int i = 6; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final dateKey = '${date.year}-${date.month}-${date.day}';
+      final xp = _weeklyXP[dateKey] ?? 0;
+      dayData.add(xp);
+      if (xp > maxXP) maxXP = xp;
+      
+      // Get day name (Mon, Tue, etc.)
+      final dayName = _getDayName(date.weekday);
+      dayNames.add(dayName);
+    }
+    
+    // Ensure maxXP is at least 1 to avoid division by zero
+    if (maxXP == 0) maxXP = 1;
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -487,37 +559,147 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Simple placeholder for weekly chart
-            Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text(
-                  '📊 Weekly activity chart coming soon!',
-                  style: TextStyle(color: Colors.grey),
+            const SizedBox(height: 20),
+            
+            // Chart
+            if (_weeklyXP.isEmpty)
+              Container(
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Text(
+                    '📊 No activity data yet',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 150,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(7, (index) {
+                    final xp = dayData[index];
+                    final height = (xp / maxXP) * 120; // Max height 120
+                    final isToday = index == 6;
+                    
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // Bar
+                            Container(
+                              height: height.clamp(4.0, 120.0),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: isToday
+                                      ? [
+                                          Colors.blue.shade600,
+                                          Colors.blue.shade400,
+                                        ]
+                                      : [
+                                          Colors.blue.shade400,
+                                          Colors.blue.shade300,
+                                        ],
+                                ),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(4),
+                                  topRight: Radius.circular(4),
+                                ),
+                              ),
+                              child: xp > 0
+                                  ? Center(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(2.0),
+                                          child: Text(
+                                            '$xp',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(height: 8),
+                            // Day label
+                            Text(
+                              dayNames[index],
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                color: isToday
+                                    ? Colors.blue.shade700
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
                 ),
               ),
-            ),
-
+            
             const SizedBox(height: 12),
-
-            const Text(
-              'Practice regularly to see your progress chart!',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
+            
+            // Summary
+            if (_weeklyXP.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      'Total: ${dayData.reduce((a, b) => a + b)} XP this week',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
-            ),
           ],
         ),
       ),
     );
+  }
+
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case 1:
+        return 'Mon';
+      case 2:
+        return 'Tue';
+      case 3:
+        return 'Wed';
+      case 4:
+        return 'Thu';
+      case 5:
+        return 'Fri';
+      case 6:
+        return 'Sat';
+      case 7:
+        return 'Sun';
+      default:
+        return '';
+    }
   }
 }

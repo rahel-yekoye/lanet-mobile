@@ -39,8 +39,8 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (success && mounted) {
-        // 🚀 Let GoRouter decide where to go next
-        context.go('/splash');
+        // 🚀 Let GoRouter decide where to go next based on auth state
+        // Router will handle navigation based on onboarding status and role
       }
     } catch (e) {
       print('Login error caught: \$e');

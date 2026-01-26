@@ -63,7 +63,7 @@ class AuthService {
           'level': 1,
           'streak': 0,
           'lastActiveDate': DateTime.now().toIso8601String(),
-          'dailyGoal': 100,
+          'dailyGoal': 5,
           'dailyXpEarned': 0,
           'settings': {},
         };
@@ -77,7 +77,21 @@ class AuthService {
       if (user == null) {
         throw Exception('Invalid email or password.');
       }
-      final userData = await SupabaseService.fetchUserData();
+      
+      // Wait a moment for the session to be fully established and user record to be created
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Fetch user data - try multiple times if needed
+      Map<String, dynamic>? userData;
+      int retries = 3;
+      while (userData == null && retries > 0) {
+        userData = await SupabaseService.fetchUserData();
+        if (userData == null && retries > 1) {
+          developer.log('AuthService.login: User data not found, retrying... ($retries attempts left)');
+          await Future.delayed(const Duration(milliseconds: 300));
+        }
+        retries--;
+      }
       if (userData != null) {
         await _saveAuthData('', userData);
         return app_model.User.fromJson(userData);
@@ -89,7 +103,7 @@ class AuthService {
           'level': 1,
           'streak': 0,
           'lastActiveDate': DateTime.now().toIso8601String(),
-          'dailyGoal': 100,
+          'dailyGoal': 5,
           'dailyXpEarned': 0,
           'settings': {},
         };
@@ -138,6 +152,7 @@ class AuthService {
     String? level,
     String? reason,
     int? dailyGoal,
+    String? role,
   }) async {
     try {
       developer.log(
@@ -151,7 +166,7 @@ class AuthService {
           'level': 1,
           'streak': 0,
           'lastActiveDate': DateTime.now().toIso8601String(),
-          'dailyGoal': 100,
+          'dailyGoal': 5,
           'dailyXpEarned': 0,
           'settings': {},
         };
@@ -160,7 +175,7 @@ class AuthService {
       }
       final normalizedEmail = email.trim().toLowerCase();
       final created =
-          await SupabaseService.signUp(normalizedEmail, password, name: name);
+          await SupabaseService.signUp(normalizedEmail, password, name: name, role: role);
       final user = created ??
           await SupabaseService.signIn(normalizedEmail, password);
       developer.log(
@@ -178,7 +193,7 @@ class AuthService {
           'level': 1,
           'streak': 0,
           'lastActiveDate': DateTime.now().toIso8601String(),
-          'dailyGoal': 100,
+          'dailyGoal': 5,
           'dailyXpEarned': 0,
           'settings': {},
         };
@@ -245,7 +260,7 @@ class AuthService {
           'level': 1,
           'streak': 0,
           'lastActiveDate': DateTime.now().toIso8601String(),
-          'dailyGoal': 100,
+          'dailyGoal': 5,
           'dailyXpEarned': 0,
           'settings': {},
         };
@@ -308,7 +323,7 @@ class AuthService {
           'level': 1,
           'streak': 0,
           'lastActiveDate': DateTime.now().toIso8601String(),
-          'dailyGoal': dailyGoal ?? 100,
+          'dailyGoal': dailyGoal ?? 5,
           'dailyXpEarned': 0,
           'settings': {},
         };

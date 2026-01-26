@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/progress_service.dart';
+import 'progress_sync_service.dart';
 
 class SessionManager {
   static const _sessionKey = 'lanet_user_session';
@@ -9,7 +10,7 @@ class SessionManager {
   
   final ProgressService _progressService = ProgressService();
   
-  // Save user's current state
+  // Save user's current state (both local and Supabase)
   Future<void> saveSession({
     required String currentCategory,
     required String currentScreen,
@@ -23,12 +24,39 @@ class SessionManager {
       'additionalData': additionalData ?? {},
     };
     
+    // Save locally
     await prefs.setString(_sessionKey, json.encode(sessionData));
     await prefs.setString(_lastActiveKey, DateTime.now().toIso8601String());
+    
+    // Also save to Supabase for persistence across devices
+    try {
+      await ProgressSyncService.saveSession(
+        category: currentCategory,
+        screen: currentScreen,
+        additionalData: additionalData,
+      );
+    } catch (e) {
+      // Don't throw - local storage is sufficient
+      print('Error saving session to Supabase: $e');
+    }
   }
   
-  // Restore user's last session
+  // Restore user's last session (try Supabase first, then local)
   Future<Map<String, dynamic>?> restoreSession() async {
+    // Try Supabase first
+    try {
+      final supabaseSession = await ProgressSyncService.getSession();
+      if (supabaseSession != null) {
+        // Also update local storage
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_sessionKey, json.encode(supabaseSession));
+        return supabaseSession;
+      }
+    } catch (e) {
+      print('Error fetching session from Supabase: $e');
+    }
+    
+    // Fallback to local storage
     final prefs = await SharedPreferences.getInstance();
     final sessionJson = prefs.getString(_sessionKey);
     
@@ -43,19 +71,38 @@ class SessionManager {
     }
   }
   
-  // Track completed categories for progress
+  // Track completed categories for progress (both local and Supabase)
   Future<void> markCategoryCompleted(String category) async {
     final prefs = await SharedPreferences.getInstance();
     final completed = await getCompletedCategories();
     if (!completed.contains(category)) {
       completed.add(category);
       await prefs.setStringList(_completedCategoriesKey, completed);
+      
+      // Also save to Supabase
+      try {
+        await ProgressSyncService.saveCompletedCategory(category);
+      } catch (e) {
+        print('Error saving completed category to Supabase: $e');
+      }
     }
   }
   
   Future<List<String>> getCompletedCategories() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(_completedCategoriesKey) ?? <String>[];
+    // Try Supabase first (for persistence across logins)
+    // Always fetch from Supabase if user is logged in to get latest progress
+    try {
+      final supabaseCategories = await ProgressSyncService.getCompletedCategories();
+      // Update local storage to match Supabase (even if empty, to keep in sync)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_completedCategoriesKey, supabaseCategories);
+      return supabaseCategories;
+    } catch (e) {
+      print('Error fetching completed categories from Supabase: $e');
+      // Fallback to local storage if Supabase fetch fails
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList(_completedCategoriesKey) ?? <String>[];
+    }
   }
   
   // Get personalized recommendations based on progress

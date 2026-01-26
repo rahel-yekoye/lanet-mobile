@@ -43,7 +43,7 @@ class User extends Equatable {
     this.level = 1,
     this.streak = 0,
     DateTime? lastActiveDate,
-    this.dailyGoal = 100,
+    this.dailyGoal = 5,
     this.dailyXpEarned = 0,
     Map<String, dynamic>? settings,
   })  : lastActiveDate = lastActiveDate ?? DateTime.now(),
@@ -87,7 +87,7 @@ class User extends Equatable {
  
     final dailyGoalRaw = json['dailyGoal'] ?? json['daily_goal'];
     final dailyXpRaw = json['dailyXpEarned'] ?? json['daily_xp_earned'];
-    final dailyGoalParsed = dailyGoalRaw == null ? 100 : asInt(dailyGoalRaw);
+    final dailyGoalParsed = dailyGoalRaw == null ? 5 : asInt(dailyGoalRaw);
     final dailyXpParsed = dailyXpRaw == null ? 0 : asInt(dailyXpRaw);
     return User(
       id: json['id']?.toString() ?? '',

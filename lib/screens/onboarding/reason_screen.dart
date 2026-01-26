@@ -37,39 +37,35 @@ class ReasonScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       title: 'Why are you learning?',
+      currentStep: 3,
+      totalSteps: 4,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
         children: [
-          Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'What\'s Your Motivation?',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF333333),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Pick a reason to help personalize your lessons',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ...reasons
-                      .map((reason) => _buildReasonOption(reason, context)),
-                ],
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'What\'s Your Motivation?',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF333333),
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                'Pick a reason to help personalize your lessons',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ...reasons
+                  .map((reason) => _buildReasonOption(reason, context)),
+            ],
           ),
         ],
       ),
@@ -106,28 +102,18 @@ class ReasonScreen extends StatelessWidget {
         iconColor = Colors.grey;
     }
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: iconColor, size: 24),
-        ),
-        title: Text(
-          reason,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-        onTap: () async {
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        color: Colors.white,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () async {
           print('DEBUG: Reason Selected: $reason');
           await OnboardingService.setValue(OnboardingService.keyReason, reason);
 
@@ -140,10 +126,44 @@ class ReasonScreen extends StatelessWidget {
             debugPrint('Error saving reason incrementally: $e');
           }
 
+          // Small delay to ensure state is updated before navigation
+          // This prevents router from redirecting during navigation
+          await Future.delayed(const Duration(milliseconds: 100));
+
           if (context.mounted) {
-            context.push('/onboarding/daily_goal');
+            // Use go() instead of push() to ensure clean navigation
+            // The router will see we're on an onboarding route and allow it
+            context.go('/onboarding/daily_goal');
           }
         },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    reason,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

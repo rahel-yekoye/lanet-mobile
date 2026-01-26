@@ -183,7 +183,9 @@ class _CelebrationDialogState extends State<CelebrationDialog>
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
                           widget.onContinue?.call();
                         },
                         style: ElevatedButton.styleFrom(

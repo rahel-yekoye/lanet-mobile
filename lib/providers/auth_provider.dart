@@ -38,21 +38,26 @@ class AuthProvider with ChangeNotifier {
     final camel = _userData?['onboardingCompleted'];
     final alt = _userData?['onboardingComplete'];
 
-    // Explicit flags (set at the very end of onboarding)
+    // Explicit flags (set at the very end of onboarding) - this is the PRIMARY check
     if (snake == true || camel == true || alt == true) return true;
 
     // Legacy users with XP are considered done
     final hasXP = (_userData?['xp'] is num) && (_userData!['xp'] as num) > 0;
     if (hasXP) return true;
 
-    // If essential fields are present, consider onboarding complete
+    // CRITICAL: Only consider onboarding complete if ALL four fields are present
+    // This prevents premature completion when user is still in the flow
     final hasLanguage = _userData?['language'] != null &&
         _userData!['language'].toString().isNotEmpty;
     final hasLevel = _userData?['level'] != null &&
         _userData!['level'].toString().isNotEmpty;
     final hasReason = _userData?['reason'] != null &&
         _userData!['reason'].toString().isNotEmpty;
-    if (hasLanguage && hasLevel && hasReason) return true;
+    final hasDailyGoal = (_userData?['daily_goal'] != null) ||
+        (_userData?['dailyGoal'] != null);
+    
+    // Require ALL four fields to be present, not just three
+    if (hasLanguage && hasLevel && hasReason && hasDailyGoal) return true;
 
     return false;
   }
@@ -140,7 +145,7 @@ class AuthProvider with ChangeNotifier {
               'level': 1,
               'streak': 0,
               'lastActiveDate': DateTime.now().toIso8601String(),
-              'dailyGoal': 100,
+              'dailyGoal': 5,
               'dailyXpEarned': 0,
               'settings': {},
             };
@@ -202,12 +207,14 @@ class AuthProvider with ChangeNotifier {
     required String name,
     required String email,
     required String password,
+    String? role,
   }) async {
     try {
       await AuthService.register(
         name: name,
         email: email,
         password: password,
+        role: role,
       );
       await _updateAuthState();
       return _isAuthenticated;
@@ -236,6 +243,11 @@ class AuthProvider with ChangeNotifier {
   // --------------------
   // Update auth state
   // --------------------
+
+  /// Refresh user data from Supabase
+  Future<void> refreshUserData() async {
+    await _updateAuthState();
+  }
 
   Future<void> _updateAuthState() async {
     _isLoading = true;
@@ -266,8 +278,22 @@ class AuthProvider with ChangeNotifier {
           _isAuthenticated = true;
           _authToken = session!.accessToken;
 
-          // Fetch user data
-          final userData = await SupabaseService.fetchUserData();
+          // Wait a moment to ensure session is fully established
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          // Fetch user data with retry logic
+          Map<String, dynamic>? userData;
+          int retries = 3;
+          while (userData == null && retries > 0) {
+            userData = await SupabaseService.fetchUserData();
+            if (userData == null && retries > 1) {
+              debugPrint('AuthProvider._updateAuthState: User data not found, retrying... ($retries attempts left)');
+              await Future.delayed(const Duration(milliseconds: 300));
+            }
+            retries--;
+          }
+          
+          debugPrint('AuthProvider._updateAuthState: Fetched user data: ${userData != null ? "Success" : "Failed"}');
           if (userData != null) {
             _userData = userData;
             try {
@@ -277,29 +303,35 @@ class AuthProvider with ChangeNotifier {
             }
             try {
               final ps = ProgressService();
+              // Sync daily XP
               final sDaily =
                   userData['daily_xp_earned'] ?? userData['dailyXpEarned'];
-              final sStreak = userData['streak'];
-              final sGoal = userData['daily_goal'] ?? userData['dailyGoal'];
-              if (sGoal != null) {
-                final g = sGoal is num
-                    ? sGoal.toInt()
-                    : int.tryParse(sGoal.toString());
-                if (g != null) await ps.setDailyGoal(g);
-              }
               if (sDaily != null) {
                 final dxp = sDaily is num
                     ? sDaily.toInt()
                     : int.tryParse(sDaily.toString());
                 if (dxp != null) await ps.setDailyXPForToday(dxp);
               }
+              // Sync streak
+              final sStreak = userData['streak'];
               if (sStreak != null) {
                 final st = sStreak is num
                     ? sStreak.toInt()
                     : int.tryParse(sStreak.toString());
                 if (st != null) await ps.setStreak(st);
               }
-            } catch (_) {}
+              // Sync daily goal
+              final sGoal = userData['daily_goal'] ?? userData['dailyGoal'];
+              if (sGoal != null) {
+                final g = sGoal is num
+                    ? sGoal.toInt()
+                    : int.tryParse(sGoal.toString());
+                if (g != null && g > 0) await ps.setDailyGoal(g);
+              }
+              debugPrint('DEBUG: Synced progress from Supabase - XP: ${userData['xp']}, Streak: $sStreak, Daily XP: $sDaily, Goal: $sGoal');
+            } catch (e) {
+              debugPrint('Error syncing progress: $e');
+            }
           } else {
             // Create minimal user data if not found
             _userData = {
@@ -312,7 +344,7 @@ class AuthProvider with ChangeNotifier {
               'level': 1,
               'streak': 0,
               'lastActiveDate': DateTime.now().toIso8601String(),
-              'dailyGoal': 100,
+              'dailyGoal': 5,
               'dailyXpEarned': 0,
               'settings': {},
             };
@@ -502,9 +534,16 @@ class AuthProvider with ChangeNotifier {
     }
 
     _userData = newUserData;
-    notifyListeners();
+    // CRITICAL: Don't notify listeners during intermediate onboarding steps
+    // This prevents the router from re-evaluating and redirecting away from onboarding screens
+    // Only notify if onboarding is being completed (final step) or if it's a non-onboarding update
+    final isOnboardingStep = language != null || level != null || reason != null || dailyGoal != null;
+    if (onboardingCompleted == true || !isOnboardingStep) {
+      notifyListeners();
+    }
 
     try {
+      // Save to Supabase in the background
       await AuthService.updateProfile(
         name: name,
         language: language,
@@ -513,8 +552,19 @@ class AuthProvider with ChangeNotifier {
         dailyGoal: dailyGoal,
         onboardingCompleted: onboardingCompleted,
       );
-      // We still update auth state to get canonical data from server
-      await _updateAuthState();
+      
+      // CRITICAL: Only update auth state if onboarding is being completed
+      // For intermediate onboarding steps (language, level, reason, dailyGoal),
+      // we do NOT call _updateAuthState() because it triggers router re-evaluation
+      // which causes premature redirects away from onboarding screens
+      if (onboardingCompleted == true) {
+        // Final step - update auth state to get canonical data and notify
+        await _updateAuthState();
+        notifyListeners();
+      }
+      // For intermediate steps, we just save to Supabase silently
+      // The optimistic update to _userData is enough for the router to see the progress
+      // and allow navigation to the next onboarding screen
     } catch (e) {
       debugPrint('Update profile error: $e');
       // We do NOT revert optimistic updates for onboarding steps (language, etc.)

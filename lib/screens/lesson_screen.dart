@@ -5,8 +5,13 @@ import '../widgets/celebration_dialog.dart';
 import '../services/onboarding_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/lesson_provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/progress_service.dart';
 import '../services/session_manager.dart';
+import '../services/exercise_service.dart';
+import '../services/admin_service.dart';
+import '../models/admin_models.dart';
+import 'exercise_screen.dart';
 
 class LessonScreen extends StatefulWidget {
   final Phrase phrase;
@@ -37,29 +42,70 @@ class _LessonScreenState extends State<LessonScreen> {
   }
 
   Future<void> _loadUserLanguage() async {
-    final language = await OnboardingService.getValue(OnboardingService.keyLanguage);
-    setState(() {
-      _userLanguage = language?.toLowerCase();
-      // Set the selected language to the user's language
-      if (language != null) {
-        _selectedLanguage = _convertToInternalLanguage(language.toLowerCase());
+    // First try to get language from AuthProvider (Supabase)
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    String? language;
+    
+    // Get from user data (Supabase)
+    final userData = auth.userData;
+    if (userData != null) {
+      language = userData['language']?.toString();
+      debugPrint('DEBUG: Language from AuthProvider: $language');
+    }
+    
+    // Fallback to SharedPreferences if not in userData
+    if (language == null || language.isEmpty) {
+      language = await OnboardingService.getValue(OnboardingService.keyLanguage);
+      debugPrint('DEBUG: Language from SharedPreferences: $language');
+    }
+    
+    // Convert language name to internal format
+    if (language != null && language.isNotEmpty) {
+      // Handle different language name formats
+      final langLower = language.toLowerCase().trim();
+      String internalLang;
+      
+      if (langLower.contains('oromo') || langLower.contains('afaan')) {
+        internalLang = 'oromo';
+      } else if (langLower.contains('tigrinya') || langLower == 'tigrigna') {
+        internalLang = 'tigrinya';
+      } else if (langLower.contains('amharic')) {
+        internalLang = 'amharic';
+      } else {
+        internalLang = _convertToInternalLanguage(langLower);
       }
-    });
+      
+      debugPrint('DEBUG: Converted language: $language -> $internalLang');
+      if (mounted) {
+        setState(() {
+          _userLanguage = internalLang;
+          _selectedLanguage = internalLang;
+        });
+      }
+    } else {
+      // Default to amharic if no language found
+      debugPrint('DEBUG: No language found, defaulting to amharic');
+      if (mounted) {
+        setState(() {
+          _userLanguage = 'amharic';
+          _selectedLanguage = 'amharic';
+        });
+      }
+    }
   }
 
   String _convertToInternalLanguage(String userLang) {
-    switch(userLang) {
-      case 'amharic':
-        return 'amharic';
-      case 'tigrinya':
-      case 'tigrigna':
-        return 'tigrinya';
-      case 'oromo':
-      case 'oromigna':
-        return 'oromo';
-      default:
-        return 'amharic';
+    final langLower = userLang.toLowerCase().trim();
+    // Handle various language name formats
+    if (langLower.contains('oromo') || langLower.contains('afaan') || langLower == 'oromigna') {
+      return 'oromo';
+    } else if (langLower.contains('tigrinya') || langLower == 'tigrigna') {
+      return 'tigrinya';
+    } else if (langLower.contains('amharic')) {
+      return 'amharic';
     }
+    // Default fallback
+    return 'amharic';
   }
 
   String _getTargetText() {
@@ -106,6 +152,107 @@ class _LessonScreenState extends State<LessonScreen> {
   }
 
   Future<void> _finishLessonAndAward() async {
+    // Check if there are exercises for this lesson
+    // Try to find a lesson ID from the category or phrase
+    List<dynamic> exercises = [];
+    String? lessonId;
+    
+    try {
+      debugPrint('Looking for lesson with category: ${widget.phrase.category}');
+      
+      // Fetch all published lessons (use large page size to get all)
+      final lessonsResponse = await AdminService.getLessons(
+        status: 'published',
+        pageSize: 100, // Get more lessons
+      );
+      final lessons = (lessonsResponse['lessons'] as List)
+          .map((l) => Lesson.fromJson(l as Map<String, dynamic>))
+          .toList();
+      
+      debugPrint('Found ${lessons.length} published lessons');
+      // Log all lesson categories for debugging
+      for (final lesson in lessons) {
+        debugPrint('  - Lesson: ${lesson.title}, Category: ${lesson.category}');
+      }
+      
+      // Try to match by category field first (exact match)
+      Lesson? matchingLesson;
+      final categoryLower = widget.phrase.category.toLowerCase().trim();
+      
+      try {
+        matchingLesson = lessons.firstWhere(
+          (l) => l.category?.toLowerCase().trim() == categoryLower,
+        );
+        debugPrint('Found lesson by exact category match: ${matchingLesson.id} - ${matchingLesson.title}');
+      } catch (e) {
+        debugPrint('No exact category match, trying partial match...');
+        // Try partial match (contains)
+        try {
+          matchingLesson = lessons.firstWhere(
+            (l) => l.category?.toLowerCase().contains(categoryLower) == true ||
+                   categoryLower.contains(l.category?.toLowerCase() ?? ''),
+          );
+          debugPrint('Found lesson by partial category match: ${matchingLesson.id} - ${matchingLesson.title}');
+        } catch (e2) {
+          debugPrint('No category match, trying title match...');
+          // Try matching by title
+          try {
+            matchingLesson = lessons.firstWhere(
+              (l) => l.title.toLowerCase().trim() == categoryLower ||
+                     l.title.toLowerCase().contains(categoryLower) ||
+                     categoryLower.contains(l.title.toLowerCase()),
+            );
+            debugPrint('Found lesson by title match: ${matchingLesson.id} - ${matchingLesson.title}');
+          } catch (e3) {
+            debugPrint('No lesson found matching category "${widget.phrase.category}"');
+            matchingLesson = null;
+          }
+        }
+      }
+      
+      if (matchingLesson != null) {
+        lessonId = matchingLesson.id;
+        debugPrint('Fetching exercises for lesson: $lessonId');
+        exercises = await ExerciseService.getExercisesForLesson(lessonId);
+        debugPrint('Found ${exercises.length} exercises for lesson $lessonId');
+      } else {
+        debugPrint('No matching lesson found for category: ${widget.phrase.category}');
+        debugPrint('Available categories: ${lessons.map((l) => l.category).where((c) => c != null).toSet()}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error fetching exercises: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Continue without exercises
+    }
+
+    // If exercises exist, navigate to exercise screen
+    if (exercises.isNotEmpty && lessonId != null) {
+      debugPrint('Navigating to ExerciseScreen with ${exercises.length} exercises');
+      if (!mounted) return;
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ExerciseScreen(
+            lessonId: lessonId!,
+            lessonTitle: widget.phrase.category,
+            exercises: exercises.cast(),
+            onComplete: () async {
+              // After exercises are completed, show final celebration
+              await _showFinalCelebration();
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    // No exercises - show regular celebration
+    debugPrint('No exercises found, showing regular celebration');
+    await _showFinalCelebration();
+  }
+
+  Future<void> _showFinalCelebration() async {
     // Award XP for completing the lesson (simple rule: 10 XP)
     const xpAward = 10;
     await _progress.addXP(xpAward);
@@ -123,12 +270,13 @@ class _LessonScreenState extends State<LessonScreen> {
     final nextCategory = hasNextCategory ? cats[curIndex + 1] : null;
 
     // Persist session pointing to next lesson start (index 0) when available
+    // If no next category, save current category as completed (user finished all lessons)
     if (nextCategory != null) {
       final nextPhrases = lp.phrasesFor(nextCategory);
       if (nextPhrases.isNotEmpty) {
         await _sessionManager.saveSession(
           currentCategory: nextCategory,
-          currentScreen: 'lesson',
+          currentScreen: 'home', // Changed to 'home' so user goes to home screen next time
           additionalData: {
             'lesson_index': 0,
             'english': nextPhrases[0].english,
@@ -136,6 +284,15 @@ class _LessonScreenState extends State<LessonScreen> {
           },
         );
       }
+    } else {
+      // All lessons completed - save session to home
+      await _sessionManager.saveSession(
+        currentCategory: widget.phrase.category,
+        currentScreen: 'home',
+        additionalData: {
+          'all_completed': true,
+        },
+      );
     }
 
     if (!mounted) return;
@@ -151,7 +308,7 @@ class _LessonScreenState extends State<LessonScreen> {
         onContinue: nextCategory != null
             ? () {
                 if (!mounted) return;
-                final nextPhrases = lp.phrasesFor(nextCategory);
+                final nextPhrases = lp.phrasesFor(nextCategory!);
                 if (nextPhrases.isNotEmpty) {
                   Navigator.pushReplacement(
                     context,
@@ -213,10 +370,54 @@ class _LessonScreenState extends State<LessonScreen> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(currentPhrase.category),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.teal.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.school, color: Colors.teal, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    currentPhrase.category,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Lesson ${_currentIndex + 1} of ${_categoryPhrases.length}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.arrow_back, size: 20),
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -225,59 +426,129 @@ class _LessonScreenState extends State<LessonScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Progress Indicator
-            Row(
-              children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: (_currentIndex + 1) / _categoryPhrases.length,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
-                    minHeight: 6,
+            // Progress Indicator with better styling
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '${_currentIndex + 1}/${_categoryPhrases.length}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Progress',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      Text(
+                        '${_currentIndex + 1}/${_categoryPhrases.length}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: (_currentIndex + 1) / _categoryPhrases.length,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.teal.shade400,
+                      ),
+                      minHeight: 8,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             
-            // Main Content Card
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+            // Main Content Card with gradient
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    Colors.teal.shade50,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.teal.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(28.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.translate,
+                            color: Colors.teal,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'English',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     Text(
                       currentPhrase.english,
                       style: const TextStyle(
-                        fontSize: 28,
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
+                        height: 1.3,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    if (_userLanguage != null && 
-                        _userLanguage!.toLowerCase() == 'amharic')
+                    const SizedBox(height: 24),
+                    // Always show the user's selected language translation
+                    if (_selectedLanguage == 'amharic' || _userLanguage == 'amharic')
                       _buildTranslationCard('Amharic', currentPhrase.amharic),
-                    if (_userLanguage != null && 
-                        _userLanguage!.toLowerCase() == 'oromo')
+                    if (_selectedLanguage == 'oromo' || _userLanguage == 'oromo')
                       _buildTranslationCard('Oromo', currentPhrase.oromo),
-                    if (_userLanguage != null && 
-                        (_userLanguage!.toLowerCase() == 'tigrinya' || 
-                         _userLanguage!.toLowerCase() == 'tigrigna'))
+                    if (_selectedLanguage == 'tigrinya' || _userLanguage == 'tigrinya')
                       _buildTranslationCard('Tigrinya', currentPhrase.tigrinya),
                   ],
                 ),
@@ -285,23 +556,43 @@ class _LessonScreenState extends State<LessonScreen> {
             ),
             const SizedBox(height: 24),
             
-            // Practice Button
-            SizedBox(
-              width: double.infinity,
+            // Practice Button with better styling
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.teal.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.mic, size: 28),
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.mic, size: 24),
+                ),
                 label: const Text(
                   'Practice Pronunciation',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  elevation: 4,
+                  elevation: 0,
                 ),
                 onPressed: () {
                   setState(() {
@@ -379,32 +670,92 @@ class _LessonScreenState extends State<LessonScreen> {
   }
 
   Widget _buildTranslationCard(String lang, String text) {
+    Color cardColor;
+    Color borderColor;
+    Color textColor;
+    
+    switch (lang.toLowerCase()) {
+      case 'amharic':
+        cardColor = Colors.blue.shade50;
+        borderColor = Colors.blue.shade200;
+        textColor = Colors.blue.shade700;
+        break;
+      case 'oromo':
+        cardColor = Colors.green.shade50;
+        borderColor = Colors.green.shade200;
+        textColor = Colors.green.shade700;
+        break;
+      case 'tigrinya':
+        cardColor = Colors.orange.shade50;
+        borderColor = Colors.orange.shade200;
+        textColor = Colors.orange.shade700;
+        break;
+      default:
+        cardColor = Colors.teal.shade50;
+        borderColor = Colors.teal.shade200;
+        textColor = Colors.teal.shade700;
+    }
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.teal.shade200),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            cardColor,
+            cardColor.withOpacity(0.5),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: borderColor.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            lang,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.teal.shade700,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: textColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.language,
+                  size: 16,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                lang,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
               color: Colors.black87,
+              height: 1.4,
+              letterSpacing: 0.5,
             ),
           ),
         ],
